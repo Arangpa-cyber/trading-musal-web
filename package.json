@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "TZ=Asia/Seoul vitest run",
     "test:watch": "TZ=Asia/Seoul vitest",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "deploy": "sh scripts/deploy.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

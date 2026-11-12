@@ -24,7 +24,10 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - 테스트: Vitest, **`TZ=Asia/Seoul`로 실행**(`npm test`). 날짜 계산은 기기 시간대 기준.
 - Supabase(프로젝트 `vwwrazzwzbaqfvsasvhb`, 서울) — 구글 로그인 + DB + RLS(본인 기록만). 주소·publishable 키는 공개값이라
   `src/data/supabase.ts`에 기본값으로 둔다(.env.local의 `VITE_SUPABASE_URL`·`VITE_SUPABASE_KEY`로 바꿀 수 있음). service_role 키는 절대 코드에 넣지 않는다.
-- (예정) PWA(홈 화면에 추가). 배포 Vercel 또는 GitHub Pages — 배포 주소가 생기면 Supabase URL Configuration·Google 리디렉션에 추가.
+- **배포 = GitHub Pages** https://arangpa-cyber.github.io/trading-musal-web/ — `npm run deploy`(타입 검사·테스트·빌드 후 `dist`를 `gh-pages` 브랜치에
+  강제 push, 반영 1~2분). 빌드 base = `/trading-musal-web/`(vite.config.ts). 화면을 바꾸면 커밋·push와 함께 배포까지 한다.
+  Supabase Authentication → URL Configuration의 Redirect URLs에 배포 주소와 `http://localhost:5173`이 있어야 로그인된다.
+- (예정) PWA(홈 화면에 추가 — 아이콘·manifest).
 - **실제 거래 데이터·백업 JSON·`.env`는 절대 커밋하지 않는다**(`.gitignore`).
 
 ## 폴더

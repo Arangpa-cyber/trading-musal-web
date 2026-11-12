@@ -1,10 +1,10 @@
 // 앱 틀 — 위쪽 막대(왼쪽 블라인드·가운데 제목·오른쪽 +) + 아래쪽 3탭.
-import { ChevronLeft, Eye, EyeOff, Plus, ReceiptText, Settings, Swords } from 'lucide-react'
+import { ChevronLeft, Eye, EyeOff, LayoutDashboard, Plus, ReceiptText, Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useBlind } from './hooks'
 
 export const TABS = [
-  { path: '/home', label: '현황', icon: Swords },
+  { path: '/home', label: '현황', icon: LayoutDashboard },
   { path: '/history', label: '거래내역', icon: ReceiptText },
   { path: '/settings', label: '설정', icon: Settings },
 ] as const
