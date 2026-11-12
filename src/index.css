@@ -814,3 +814,243 @@ select {
 .row-between > :first-child {
   min-width: 0;
 }
+
+/* 입력 폼(iOS Form) */
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form-section {
+  margin-bottom: 14px;
+}
+.form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.form-group {
+  border-radius: 12px;
+  background: var(--group);
+  overflow: hidden;
+}
+.form-footer {
+  padding: 6px 14px 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.form-row {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border-top: 1px solid var(--hairline);
+}
+.form-group > .form-row:first-child,
+.form-group > :first-child {
+  border-top: none;
+}
+.form-note {
+  font-size: 0.78rem;
+  margin: 4px 0 0;
+}
+.form-row.form-note {
+  margin: 0;
+}
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+}
+.field-label {
+  flex-shrink: 0;
+  min-width: 78px;
+}
+.field-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.number-field {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+.number-field input,
+.text-field,
+.select-field,
+.date-field {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+}
+.number-field input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.field-row .number-field input::placeholder,
+.number-field input::placeholder,
+.text-field::placeholder {
+  color: color-mix(in srgb, var(--muted) 75%, transparent);
+}
+.unit {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.select-field {
+  color: var(--accent);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.date-field {
+  text-align: right;
+  color: var(--accent);
+}
+.segmented {
+  display: flex;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--fill);
+}
+.segmented button {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+.segmented button.on {
+  background: var(--group);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toggle-row input {
+  width: 46px;
+  height: 26px;
+  accent-color: var(--green);
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.check-row > * {
+  min-width: 0;
+}
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font-size: 0.86rem;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.summary-row > :last-child {
+  text-align: right;
+}
+.fill-button {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.tranche {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tranche-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 6px;
+}
+.tranche-grid .number-field {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--fill);
+}
+.small-icon {
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+}
+.save-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 20px;
+}
+.block-reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: var(--orange);
+}
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+.rules-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.8;
+  user-select: text;
+}
+.rules-editor {
+  flex: 1;
+  min-height: 60vh;
+  font: inherit;
+  line-height: 1.8;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+}
+.memo-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.memo-confirm-text {
+  white-space: pre-wrap;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--group);
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.form-row.row-between {
+  display: flex;
+}

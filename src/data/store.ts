@@ -69,6 +69,24 @@ export async function saveSettings(settings: Settings): Promise<void> {
   if (error) throw error
 }
 
+/** 여러 종류를 한 번에 저장 — 환전(예수금) → 매수 → 매도 → 메모 순(같이 기록한 환전이 매수보다 먼저). */
+export async function persistChanges(changes: import('../state/journal').Changes): Promise<void> {
+  await saveRecords('cash', changes.cash ?? [])
+  await saveRecords('buys', changes.buys ?? [])
+  await saveRecords('sells', changes.sells ?? [])
+  await saveRecords('journals', changes.journals ?? [])
+  if (changes.profile) await saveProfile(changes.profile)
+  if (changes.settings) await saveSettings(changes.settings)
+}
+
+/** 여러 종류를 한 번에 지우기 — 매도 → 매수 순(판 매수를 가리키는 매도를 먼저). */
+export async function removeRecords(removals: import('../state/journal').Removals): Promise<void> {
+  await deleteRecords('sells', removals.sells ?? [])
+  await deleteRecords('buys', removals.buys ?? [])
+  await deleteRecords('cash', removals.cash ?? [])
+  await deleteRecords('journals', removals.journals ?? [])
+}
+
 /** 백업 가져오기 — 기록을 통째로 바꾼다(DB 함수 하나, 실패하면 아무것도 안 바뀜). 프로필이 null이면 지금 것을 둔다. */
 export async function replaceJournal(data: JournalData): Promise<void> {
   const { error } = await supabase.rpc('replace_journal', { p: data })

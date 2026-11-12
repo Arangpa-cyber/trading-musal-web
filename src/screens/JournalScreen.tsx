@@ -2,10 +2,10 @@
 import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalData } from '../core'
-import { loadJournal } from '../data/store'
+import { loadJournal, persistChanges, removeRecords } from '../data/store'
 import { signOut } from '../data/useSession'
 import { errorMessage, importBackupFile } from '../state/backupActions'
-import { JournalProvider } from '../state/journal'
+import { JournalProvider, type Changes, type Removals } from '../state/journal'
 import { AppShell } from './AppShell'
 import { OnboardingScreen } from './OnboardingScreen'
 
@@ -28,6 +28,21 @@ export function JournalScreen({ session }: { session: Session }) {
   useEffect(() => {
     void reload()
   }, [reload, session.user.id])
+
+  const persist = useCallback(
+    async (changes: Changes) => {
+      await persistChanges(changes)
+      await reload()
+    },
+    [reload],
+  )
+  const remove = useCallback(
+    async (removals: Removals) => {
+      await removeRecords(removals)
+      await reload()
+    },
+    [reload],
+  )
 
   if (load.state === 'loading') return <main className="center"><p className="muted">불러오는 중…</p></main>
   if (load.state === 'error') {
@@ -64,7 +79,7 @@ export function JournalScreen({ session }: { session: Session }) {
   }
 
   return (
-    <JournalProvider data={load.data} reload={reload}>
+    <JournalProvider data={load.data} reload={reload} persist={persist} remove={remove}>
       <AppShell email={session.user.email} />
     </JournalProvider>
   )

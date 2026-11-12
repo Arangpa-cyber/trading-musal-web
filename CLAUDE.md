@@ -48,6 +48,13 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   스타일은 `src/index.css` 하나(CSS 변수로 색상 규칙·다크 모드).
 - `src/dev/` — 개발용 예시 데이터. `npm run dev` 후 `http://localhost:5173/?preview#/home`이면 로그인 없이 화면을 본다(배포본 제외).
   **화면을 고치면 `node scripts/shot.mjs "#/home" /tmp/x.png`(폰 390px, PC는 폭 1280)로 찍어 직접 확인한다.**
+  입력 흐름은 `node scripts/e2e-entry.mjs /tmp`(미리보기에서 입금 → 매수 → 매도를 실제로 입력·저장, ✓ 목록 출력) — 입력·저장을 고치면 돌린다.
+- 저장·삭제는 `useJournal().persist(changes)`·`remove(removals)`만 쓴다(실제 = Supabase 후 다시 불러오기, 미리보기 = 메모리).
+  화면에서 `data/store`를 직접 부르지 않는다(백업 가져오기·초기화만 예외).
+- 입력 시트(`screens/entry/`): `EntrySheet`(날짜·구분·쓰던 내용 보호·원칙) + `BuyForm`·`SellForm`·`CashForm`, `draft.ts`(작성 중 판단),
+  `RulesSheet`(원칙). 공용 입력 부품은 `ui/form.tsx`(FormSection·FieldRow·NumberField·Segmented·SummaryBox·CashChangeBox·ExchangeFields·SaveFooter).
+  자동 계산값(손절가·손절률·체결 수수료)은 칸의 회색 placeholder로 보이고 직접 적으면 우선. Enter = 다음 칸. 숫자 칸엔 항상 `label`을 준다.
+  현황 매도 요청에 보유 메모가 있으면 AppShell이 "매도 전 확인" 시트를 먼저 띄운다.
 - `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
 
 ## DB (2026-11-13)
@@ -86,7 +93,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   목록형(거래내역·메모·가이드·설정) = 시스템 그룹 목록 스타일. 결과 박스는 하나의 스타일(연한 강조색 배경).
 - 블라인드 모드: 금액만 •••(비율은 보임), 기기별 설정(백업 미포함, localStorage `blindMode`).
 - PC 화면 = 폰과 같은 한 줄을 가운데에(폭 720px, 사용자 결정 A). 시트는 폰에선 아래에서, PC에선 가운데 창.
-- 진행(2026-11-13): 4-1 앱 틀 + 현황(경지·보유자산·확인표) 완료 → 4-2 입력 시트 → 4-3 거래내역·메모·수정 → 4-4 차트 카드·카드 순서·현재가 기록
+- 진행(2026-11-13): 4-1 앱 틀 + 현황(경지·보유자산·확인표) 완료 → 4-2 입력 시트 완료 → 4-3 거래내역·메모·수정 → 4-4 차트 카드·카드 순서·현재가 기록
   → 4-5 설정·원칙·가이드. 아직 없는 메뉴 항목은 비활성 + "다음 단계에서 만들어요".
 
 ## 매매 기록 핵심 규칙 (iOS와 같음 — 자세한 근거는 iOS CLAUDE.md)
