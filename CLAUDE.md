@@ -36,7 +36,15 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
     `importIos.ts` iOS 백업 가져오기, `backup.ts` 웹 백업.
   - `__tests__/` — iOS `CoreServiceTests` 시나리오를 옮긴 회귀 테스트. 계산 수정 시 반드시 통과.
 - `src/data/` — 저장(Supabase). `store.ts` 테이블 ↔ 웹 형식, `useSession.ts` 구글 로그인. 계산은 하지 않는다.
-- `src/screens/` — 화면. 지금은 로그인 → 별호(온보딩) → 임시 요약 + 백업 가져오기·내보내기·초기화.
+- `src/screens/` — 화면. `JournalScreen`(불러오기 → 온보딩 또는 앱) → `AppShell`(위 막대·아래 3탭·#/주소 라우팅·입력 시트) →
+  `home/`(현황: `HomeScreen`·`TierCard`·`HoldingsCard`·`Checklist`), `SettingsScreen`.
+- `src/state/` — `journal.tsx`(데이터+스냅샷 컨텍스트, `useJournal()` — 화면은 계산을 여기 스냅샷에서만 가져온다), `entry.ts`(입력 시트 요청),
+  `backupActions.ts`(가져오기·내보내기 공용).
+- `src/ui/` — 공용 부품: `components.tsx`(Card·SectionHeader·Pill·PlanGrid·StatCell·Gauge·Blind), `Menu.tsx`(탭하면 누른 자리에 뜨는 메뉴),
+  `Sheet.tsx`(시트·Alert), `layout.tsx`(TopBar·TabBar·Page), `cells.ts`(카드 4칸 내용), `format.ts`(원·$·%·날짜 표기), `hooks.ts`(localStorage·블라인드·#라우팅).
+  스타일은 `src/index.css` 하나(CSS 변수로 색상 규칙·다크 모드).
+- `src/dev/` — 개발용 예시 데이터. `npm run dev` 후 `http://localhost:5173/?preview#/home`이면 로그인 없이 화면을 본다(배포본 제외).
+  **화면을 고치면 `node scripts/shot.mjs "#/home" /tmp/x.png`(폰 390px, PC는 폭 1280)로 찍어 직접 확인한다.**
 - `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
 
 ## DB (2026-11-13)
@@ -63,7 +71,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - ID: iOS에서 가져온 ID는 소문자로 바꾼다. 같은 시각 정렬 등 iOS와 순서를 맞출 땐 `idKey`(대문자)로 비교.
 - 날짜는 epoch 밀리초(`Millis`).
 
-## 앱 구조 (iOS 3탭 + 입력 시트를 그대로 옮길 예정)
+## 앱 구조 (iOS 3탭 + 입력 시트)
 
 현황 / 거래내역 / 설정. 가이드는 설정 안 "가이드 · 용어 사전". 매매일지 탭은 없다(메모만, 캘린더는 거래내역, 확인표는 현황 카드).
 입력은 탭이 아니라 시트(모달) — 현황·거래내역 `+`, 현황 보유 카드 메뉴(매도·피라미딩·입출금).
@@ -73,7 +81,10 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - 앱 화면에 '묶음'·'매수분'이라는 말은 쓰지 않는다 — 매수 이름 "N-n"·"매수"·"완료 거래"로 표현.
 - 카드(경지·수익분포·파이차트·총자산추이·보유자산·확인표) = 독립된 둥근 박스, 화면 가장자리 여백 좁게.
   목록형(거래내역·메모·가이드·설정) = 시스템 그룹 목록 스타일. 결과 박스는 하나의 스타일(연한 강조색 배경).
-- 블라인드 모드: 금액만 •••(비율은 보임), 기기별 설정(백업 미포함).
+- 블라인드 모드: 금액만 •••(비율은 보임), 기기별 설정(백업 미포함, localStorage `blindMode`).
+- PC 화면 = 폰과 같은 한 줄을 가운데에(폭 720px, 사용자 결정 A). 시트는 폰에선 아래에서, PC에선 가운데 창.
+- 진행(2026-11-13): 4-1 앱 틀 + 현황(경지·보유자산·확인표) 완료 → 4-2 입력 시트 → 4-3 거래내역·메모·수정 → 4-4 차트 카드·카드 순서·현재가 기록
+  → 4-5 설정·원칙·가이드. 아직 없는 메뉴 항목은 비활성 + "다음 단계에서 만들어요".
 
 ## 매매 기록 핵심 규칙 (iOS와 같음 — 자세한 근거는 iOS CLAUDE.md)
 
