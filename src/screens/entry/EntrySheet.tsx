@@ -8,6 +8,8 @@ import type { EntryRequest } from '../../state/entry'
 import { useJournal, type Changes } from '../../state/journal'
 import { FormRow, FormSection, Segmented } from '../../ui/form'
 import { Alert, Sheet } from '../../ui/Sheet'
+import { useToast } from '../../ui/toast'
+import { CASH_TX_LABEL } from '../../core'
 import { BuyForm } from './BuyForm'
 import { CashForm } from './CashForm'
 import { RulesSheet } from './RulesSheet'
@@ -36,6 +38,7 @@ const toInput = (t: Millis) => {
 
 export function EntrySheet({ request, onClose }: { request: EntryRequest; onClose: () => void }) {
   const { persist } = useJournal()
+  const toast = useToast()
   const [category, setCategory] = useState<Category>(request.kind === 'cash' ? 'cash' : 'asset')
   const [type, setType] = useState<TradeType>(request.kind === 'sell' ? 'sell' : 'buy')
   const [date, setDate] = useState<Millis>(() => Date.now())
@@ -65,6 +68,9 @@ export function EntrySheet({ request, onClose }: { request: EntryRequest; onClos
     try {
       await persist(payload)
       onClose()
+      // 저장 순간의 확인 — 시트가 바로 닫혀서 저장됐는지 알기 어려웠다.
+      const cashType = payload.cash?.[0]?.type
+      toast(payload.sells?.length ? '매도 저장됨' : payload.buys?.length ? '매수 저장됨' : cashType ? `${CASH_TX_LABEL[cashType]} 저장됨` : '저장됨')
     } catch (e) {
       setError(`저장하지 못했어요: ${errorMessage(e)}`)
       setBusy(false)

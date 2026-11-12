@@ -1,5 +1,16 @@
 // 카드 4칸 격자 내용 — 현황·거래내역 공용(iOS riskRow·markCells).
-import { TradePosition } from '../core'
+import {
+  entryPnlAtStop,
+  entryRiskExceeded,
+  entryStopLossPrice,
+  entryStopPercent,
+  entryStopTooWide,
+  sellAmountKRW,
+  stopGapWarns,
+  TradePosition,
+  type RatedBuy,
+  type RatedSell,
+} from '../core'
 import type { Cell } from './components'
 import { percent, price, relativeDay, signColor, wonCompact } from './format'
 
@@ -76,3 +87,42 @@ export function positionMarkCells(p: TradePosition, blind: boolean): Cell[] {
 
 /** 매수별 결과 색 — 수익 빨강 · 손실 파랑 · 0 회색. */
 export const lotTone = signColor
+
+/**
+ * 매수 카드 리스크 줄 — 이 매수를 저장할 때 정한 손절가(진입 시 손절가) 기준 = "그때의 계획".
+ * 리스크율 칸은 허용손실 초과(①), 손절률 칸은 손절폭 한도 초과(②)면 주황.
+ */
+export function buyEntryCells(b: RatedBuy, blind: boolean, maxStopLossPercent: number): Cell[] {
+  const pnl = entryPnlAtStop(b)
+  return riskRow({
+    stopText: price(entryStopLossPrice(b), b.currency),
+    stopPercent: entryStopPercent(b),
+    pnl,
+    pnlPercent: b.totalAssetsAtEntry > 0 ? (pnl / b.totalAssetsAtEntry) * 100 : null,
+    riskWarn: entryRiskExceeded(b),
+    stopWarn: entryStopTooWide(b, maxStopLossPercent),
+    blind,
+  })
+}
+
+/**
+ * 매도 카드 결과 줄 — 손절가대비 | 손익률 | 계좌기여율 | 실현손익(매수 카드 리스크 줄과 짝).
+ * 원가는 그 매도 시점 이동평균. 손절가대비 1% 넘게 아래(⑧)·계좌기여율이 진입 리스크율보다 더 잃음(⑦)이면 주황.
+ */
+export function sellResultCells(p: TradePosition, s: RatedSell, blind: boolean): Cell[] {
+  const cost = p.costBasis(s)
+  const profit = sellAmountKRW(s) - cost
+  const contribution = p.accountContribution(s)
+  const gap = p.stopGap(s)
+  const profitTone = profit >= 0 ? 'red' : 'blue'
+  return [
+    { label: '손절가대비', value: gap === null ? '-' : percent(gap, true), tone: gap === null ? 'default' : stopGapWarns(gap) ? 'orange' : gap >= 0 ? 'red' : 'blue' },
+    { label: '손익률', value: cost > 0 ? percent((profit / cost) * 100, true) : '-', tone: profitTone },
+    {
+      label: '계좌기여율',
+      value: contribution === null ? '-' : percent(contribution, true),
+      tone: contribution === null ? 'default' : p.exceededEntryRisk(s) ? 'orange' : contribution >= 0 ? 'red' : 'blue',
+    },
+    { label: '실현손익', value: (profit >= 0 ? '+' : '') + wonCompact(profit), tone: profitTone, blind },
+  ]
+}

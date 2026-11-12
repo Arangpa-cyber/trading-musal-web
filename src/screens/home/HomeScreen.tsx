@@ -3,8 +3,8 @@
 import { PlusCircle, UserSquare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { lockedRiskPercent, phaseSeverity, phaseStatusText, tierName, BEOMIN } from '../../core'
-import type { OpenEntry } from '../../state/entry'
 import { useJournal } from '../../state/journal'
+import { useSheets } from '../../state/sheets'
 import { Card, SectionHeader, Text } from '../../ui/components'
 import { useLocalStorage } from '../../ui/hooks'
 import { Alert } from '../../ui/Sheet'
@@ -12,8 +12,9 @@ import { ChecklistCard } from './Checklist'
 import { HoldingsCard } from './HoldingsCard'
 import { TierCard } from './TierCard'
 
-export function HomeScreen({ openEntry, onOpenChecklist }: { openEntry: OpenEntry; onOpenChecklist: () => void }) {
+export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void }) {
   const { data, snapshot } = useJournal()
+  const { openEntry } = useSheets()
   const notice = useTierNotice()
   const empty = data.cash.length === 0 && data.buys.length === 0
 
@@ -42,7 +43,7 @@ export function HomeScreen({ openEntry, onOpenChecklist }: { openEntry: OpenEntr
         </Card>
       )}
 
-      <HoldingsCard openEntry={openEntry} />
+      <HoldingsCard />
       <ChecklistCard onOpen={onOpenChecklist} />
 
       {notice.alert && <Alert title={notice.alert.title} message={notice.alert.message} actions={[{ label: '확인', primary: true, onSelect: notice.dismiss }]} />}

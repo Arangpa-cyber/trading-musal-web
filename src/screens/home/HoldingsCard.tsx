@@ -26,6 +26,7 @@ import {
   type TradePosition,
 } from '../../core'
 import type { OpenEntry } from '../../state/entry'
+import { useSheets, type SheetActions } from '../../state/sheets'
 import { useJournal } from '../../state/journal'
 import { positionMarkCells, positionRiskCells } from '../../ui/cells'
 import { Blind, Card, Pill, PlanGrid, SectionHeader, Text } from '../../ui/components'
@@ -33,10 +34,10 @@ import { dollar, percent, price, rate, shortDate, signColor, weightText, won, wo
 import { useBlind } from '../../ui/hooks'
 import { Menu, type MenuItem } from '../../ui/Menu'
 
-const SOON = '다음 단계에서 만들어요'
-
-export function HoldingsCard({ openEntry }: { openEntry: OpenEntry }) {
+export function HoldingsCard() {
   const { snapshot: s, data } = useJournal()
+  const sheets = useSheets()
+  const openEntry = sheets.openEntry
   const [blind] = useBlind()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const open = [...s.openPositions].sort((a, b) => b.positionCost - a.positionCost)
@@ -69,7 +70,7 @@ export function HoldingsCard({ openEntry }: { openEntry: OpenEntry }) {
         icon={Wallet}
         trailing={
           open.length > 0 && (
-            <button type="button" className="text-button small" disabled title={SOON}>
+            <button type="button" className="text-button small" onClick={sheets.openBulkMark}>
               <ClipboardPen size={14} /> 현재가 기록
             </button>
           )
@@ -112,7 +113,7 @@ export function HoldingsCard({ openEntry }: { openEntry: OpenEntry }) {
           return (
             <div key={p.id}>
               <hr />
-              <Menu items={positionMenu(p, isOpen, () => toggle(p.id), openEntry)} className="row-button" label={`${p.assetName} 메뉴`}>
+              <Menu items={positionMenu(p, isOpen, () => toggle(p.id), sheets)} className="row-button" label={`${p.assetName} 메뉴`}>
                 <PositionCard position={p} totalAssets={s.totalAssets} maxWeight={data.settings.maxWeightPercent} blind={blind} memo={memo?.text} />
               </Menu>
               {isOpen && <LotBreakdown position={p} blind={blind} openEntry={openEntry} />}
@@ -125,7 +126,7 @@ export function HoldingsCard({ openEntry }: { openEntry: OpenEntry }) {
 }
 
 /** 보유 카드 메뉴 — 피라미딩·매도·메모·현재가 · 손절가 기록·모아보기, 구분선 아래 펼치기/접기. */
-function positionMenu(p: TradePosition, isOpen: boolean, toggle: () => void, openEntry: OpenEntry): MenuItem[] {
+function positionMenu(p: TradePosition, isOpen: boolean, toggle: () => void, sheets: SheetActions): MenuItem[] {
   return [
     {
       label: '피라미딩',
@@ -133,12 +134,12 @@ function positionMenu(p: TradePosition, isOpen: boolean, toggle: () => void, ope
       // 피라미딩 쿠션 = 확보이익(손절가 ≥ 평단) — 본전 확보 전엔 비활성.
       detail: p.isBreakevenSecured ? undefined : '손절가를 평단 위로 올린 뒤 가능',
       disabled: !p.isBreakevenSecured,
-      onSelect: () => openEntry({ kind: 'pyramid', positionId: p.id }),
+      onSelect: () => sheets.openEntry({ kind: 'pyramid', positionId: p.id }),
     },
-    { label: '매도', icon: ArrowDownCircle, onSelect: () => openEntry({ kind: 'sell', positionId: p.id }) },
-    { label: '메모', icon: NotebookPen, detail: SOON, disabled: true, onSelect: () => {} },
-    { label: '현재가 · 손절가 기록', icon: ClipboardPen, detail: SOON, disabled: true, onSelect: () => {} },
-    { label: '이 종목 모아보기', icon: Layers, detail: SOON, disabled: true, onSelect: () => {} },
+    { label: '매도', icon: ArrowDownCircle, onSelect: () => sheets.openEntry({ kind: 'sell', positionId: p.id }) },
+    { label: '메모', icon: NotebookPen, onSelect: () => sheets.openMemos(p.id, p.assetName, 'holding') },
+    { label: '현재가 · 손절가 기록', icon: ClipboardPen, onSelect: () => sheets.openMark(p.id) },
+    { label: '이 종목 모아보기', icon: Layers, onSelect: () => sheets.openAsset(p.assetName) },
     'divider',
     { label: isOpen ? '접기' : '펼치기', icon: isOpen ? ChevronUp : ChevronDown, onSelect: toggle },
   ]

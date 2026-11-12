@@ -1,67 +1,121 @@
-// 앱 틀 — 탭(현황·거래내역·설정) 전환, 상세 화면(확인표), 입력 시트.
-import { useState } from 'react'
-import { holdingMemo } from '../core'
+// 앱 틀 — 탭(현황·거래내역·설정) 전환, 상세 화면(확인표), 시트(입력·수정·메모·모아보기·현재가)를 한곳에서 띄운다.
+import { CalendarDays, List } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { fixedDateText, holdingMemo, type JournalContext } from '../core'
 import type { EntryRequest } from '../state/entry'
 import { useJournal } from '../state/journal'
-import { shortDate } from '../ui/format'
+import { SheetContext, type EditTarget, type SheetActions } from '../state/sheets'
 import { useHashRoute } from '../ui/hooks'
 import { Page, TabBar, TopBar } from '../ui/layout'
 import { Sheet } from '../ui/Sheet'
+import { ToastProvider } from '../ui/toast'
+import { AssetDetailSheet } from './AssetDetailSheet'
+import { EditSheet } from './edit/EditSheets'
 import { EntrySheet } from './entry/EntrySheet'
+import { HistoryScreen } from './history/HistoryScreen'
 import { ChecklistDetail } from './home/Checklist'
 import { HomeScreen } from './home/HomeScreen'
+import { BulkMarkSheet, MarkPriceSheet } from './home/MarkSheets'
+import { MemoThreadSheet } from './memo/MemoSheets'
 import { SettingsScreen } from './SettingsScreen'
 
 const TITLES: Record<string, string> = { '/home': '현황', '/history': '거래내역', '/settings': '설정', '/checklist': '확인표' }
 
 export function AppShell({ email }: { email?: string }) {
+  return (
+    <ToastProvider>
+      <Shell email={email} />
+    </ToastProvider>
+  )
+}
+
+function Shell({ email }: { email?: string }) {
   const [path, navigate] = useHashRoute()
-  const { data } = useJournal()
+  const { data, snapshot } = useJournal()
   const [entry, setEntry] = useState<EntryRequest | null>(null)
   // 매도 전 확인 — 그 거래에 보유 메모가 있으면 먼저 보여주고, "그래도 매도할게요"면 입력 시트를 연다.
   const [pendingSell, setPendingSell] = useState<EntryRequest | null>(null)
+  const [edit, setEdit] = useState<EditTarget | null>(null)
+  const [memos, setMemos] = useState<{ tradeId: string; assetName: string; context: JournalContext } | null>(null)
+  const [asset, setAsset] = useState<string | null>(null)
+  const [markId, setMarkId] = useState<string | null>(null)
+  const [bulkMark, setBulkMark] = useState(false)
+  const [calendar, setCalendar] = useState(false)
   const route = path in TITLES ? path : '/home'
   const isTab = route === '/home' || route === '/history' || route === '/settings'
-  const openEntry = (request: EntryRequest) => {
-    if (request.kind === 'sell' && holdingMemo(data.journals, request.positionId)) setPendingSell(request)
-    else setEntry(request)
-  }
+
+  const actions = useMemo<SheetActions>(
+    () => ({
+      openEntry: (request) => {
+        if (request.kind === 'sell' && holdingMemo(data.journals, request.positionId)) setPendingSell(request)
+        else setEntry(request)
+      },
+      openEdit: setEdit,
+      openMemos: (tradeId, assetName, context) => setMemos({ tradeId, assetName, context }),
+      openAsset: setAsset,
+      openMark: setMarkId,
+      openBulkMark: () => setBulkMark(true),
+    }),
+    [data.journals],
+  )
   const memo = pendingSell?.kind === 'sell' ? holdingMemo(data.journals, pendingSell.positionId) : null
+  const markPosition = snapshot.openPositions.find((p) => p.id === markId)
 
   return (
-    <div className="app">
-      <TopBar
-        title={TITLES[route]}
-        onAdd={route === '/home' || route === '/history' ? () => openEntry({ kind: 'new' }) : undefined}
-        onBack={isTab ? undefined : () => history.back()}
-      />
-      <Page>
-        {route === '/home' && <HomeScreen openEntry={openEntry} onOpenChecklist={() => navigate('/checklist')} />}
-        {route === '/history' && <p className="empty">거래내역은 다음 단계(4-3)에서 만들어요.</p>}
-        {route === '/settings' && <SettingsScreen email={email} />}
-        {route === '/checklist' && <ChecklistDetail />}
-      </Page>
-      {isTab && <TabBar current={route} onSelect={navigate} />}
+    <SheetContext.Provider value={actions}>
+      <div className="app">
+        <TopBar
+          title={TITLES[route]}
+          onAdd={route === '/home' || route === '/history' ? () => setEntry({ kind: 'new' }) : undefined}
+          onBack={isTab ? undefined : () => history.back()}
+          extra={
+            route === '/history' && (
+              <button type="button" className="icon-button tone-accent" aria-label={calendar ? '목록 보기' : '캘린더 보기'} onClick={() => setCalendar((c) => !c)}>
+                {calendar ? <List size={22} /> : <CalendarDays size={22} />}
+              </button>
+            )
+          }
+        />
+        <Page>
+          {route === '/home' && <HomeScreen onOpenChecklist={() => navigate('/checklist')} />}
+          {route === '/history' && <HistoryScreen calendar={calendar} />}
+          {route === '/settings' && <SettingsScreen email={email} />}
+          {route === '/checklist' && <ChecklistDetail />}
+        </Page>
+        {isTab && <TabBar current={route} onSelect={navigate} />}
 
-      {entry && <EntrySheet request={entry} onClose={() => setEntry(null)} />}
-      {pendingSell && memo && (
-        <Sheet title="매도 전 확인" onClose={() => setPendingSell(null)} leading={<button type="button" className="bar-button" onClick={() => setPendingSell(null)}>취소</button>}>
-          <div className="memo-confirm">
-            <p className="muted small">보유하면서 남긴 메모예요 ({shortDate(memo.date)}). 다시 읽고 매도하세요.</p>
-            <div className="memo-confirm-text">{memo.text}</div>
-            <button
-              type="button"
-              className="primary wide"
-              onClick={() => {
-                setEntry(pendingSell)
-                setPendingSell(null)
-              }}
-            >
-              그래도 매도할게요
-            </button>
-          </div>
-        </Sheet>
-      )}
-    </div>
+        {entry && <EntrySheet request={entry} onClose={() => setEntry(null)} />}
+        {edit && <EditSheet target={edit} onClose={() => setEdit(null)} />}
+        {memos && <MemoThreadSheet {...memos} onClose={() => setMemos(null)} />}
+        {asset && <AssetDetailSheet assetName={asset} onClose={() => setAsset(null)} />}
+        {markPosition && <MarkPriceSheet position={markPosition} onClose={() => setMarkId(null)} />}
+        {bulkMark && <BulkMarkSheet positions={[...snapshot.openPositions].sort((a, b) => b.positionCost - a.positionCost)} onClose={() => setBulkMark(false)} />}
+        {pendingSell && memo && (
+          // 보유 중일 때 남겨둔 생각을 매도 직전에 한 번 더 — 감정적으로 급하게 파는 걸 되돌아보게.
+          <Sheet title="매도 전 확인" onClose={() => setPendingSell(null)}>
+            <div className="memo-confirm">
+              <strong>보유 중일 때 남겨둔 생각이 있어요</strong>
+              <div className="memo-confirm-text">
+                <span className="muted small block">{fixedDateText(memo.date)}</span>
+                {memo.text}
+              </div>
+              <button
+                type="button"
+                className="primary wide"
+                onClick={() => {
+                  setEntry(pendingSell)
+                  setPendingSell(null)
+                }}
+              >
+                그래도 매도할게요
+              </button>
+              <button type="button" className="link" onClick={() => setPendingSell(null)}>
+                다시 생각해볼게요
+              </button>
+            </div>
+          </Sheet>
+        )}
+      </div>
+    </SheetContext.Provider>
   )
 }

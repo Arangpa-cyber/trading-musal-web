@@ -10,7 +10,7 @@ export const TABS = [
 ] as const
 
 /** 탭 화면 위쪽 막대 — 앱 공통 배치: 왼쪽 위 블라인드, 오른쪽 위 +(입력). */
-export function TopBar({ title, onAdd, onBack }: { title: string; onAdd?: () => void; onBack?: () => void }) {
+export function TopBar({ title, onAdd, onBack, extra }: { title: string; onAdd?: () => void; onBack?: () => void; extra?: ReactNode }) {
   const [blind, setBlind] = useBlind()
   return (
     <header className="top-bar">
@@ -33,6 +33,7 @@ export function TopBar({ title, onAdd, onBack }: { title: string; onAdd?: () => 
       </div>
       <h1 className="bar-title">{title}</h1>
       <div className="bar-side end">
+        {extra}
         {onAdd && (
           <button type="button" className="icon-button tone-accent" onClick={onAdd} aria-label="입력">
             <Plus size={24} strokeWidth={2.4} />

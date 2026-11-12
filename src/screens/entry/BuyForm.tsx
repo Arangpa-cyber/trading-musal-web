@@ -164,6 +164,15 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const actualRisk = avgPrice !== null && stop !== null && totalQty > 0 && fillRate !== null ? (Math.max(avgPrice - stop, 0) * totalQty + (isForeign ? totalFee : 0)) * fillRate : null
   const actualRiskExceeded = actualRisk !== null && riskAmountText !== '-' && actualRisk > riskAmount + 1
   const actualPnlAtStop = avgPrice === null ? null : pnlAtStop(totalQty, avgPrice, fillRate ?? fxRate)
+  // 체결 가격 확인 — 목표 매수가와 20% 넘게 다르면(0 하나 빠뜨림 등) 주황으로 다시 보게 한다.
+  const priceMismatch =
+    entry !== null && entry > 0
+      ? filled.flatMap((t) => {
+          const p = positive(t.price) ?? 0
+          const diff = (p / entry - 1) * 100
+          return Math.abs(diff) > 20 ? [{ index: tranches.indexOf(t) + 1, diff }] : []
+        })
+      : []
   const taxValue = parseNum(tax) ?? 0
   const needed = totalQty > 0 ? totalFill + totalFee + taxValue : 0
   const usdShort = Math.max(needed - cash.usd, 0)
@@ -426,6 +435,11 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
             </div>
           )
         })}
+        {priceMismatch.map((m) => (
+          <FormRow key={m.index} className="form-note tone-orange">
+            {m.index}번째 체결 가격이 목표 매수가와 {m.diff > 0 ? '+' : ''}{m.diff.toFixed(0)}% 달라요 — 가격을 확인하세요.
+          </FormRow>
+        ))}
         <FormRow>
           <button type="button" className="text-button" onClick={() => setTranches((prev) => [...prev, newTranche()])}>
             + 체결 추가
