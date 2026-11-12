@@ -1,10 +1,11 @@
 // 메모 — 한 거래(tradeId)에 쌓인 메모 목록(누르면 메뉴: 수정·삭제) + 작성/수정 화면(날짜·내용만).
 // 시점(매수·보유·매도)은 메모를 연 위치로 자동(작성 화면에 고르는 칸 없음, 수정하면 원래 값 유지).
-import { NotebookPen, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ExternalLink, NotebookPen, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { fixedDateText, JOURNAL_CONTEXT_LABEL, type JournalContext, type JournalEntry, type Millis } from '../../core'
+import { fixedDateText, JOURNAL_CONTEXT_LABEL, memoAnchorId, type JournalContext, type JournalData, type JournalEntry, type Millis } from '../../core'
 import { errorMessage } from '../../state/backupActions'
 import { useJournal } from '../../state/journal'
+import { useSheets } from '../../state/sheets'
 import { Pill } from '../../ui/components'
 import { FormSection } from '../../ui/form'
 import { Menu } from '../../ui/Menu'
@@ -40,13 +41,25 @@ export function useMemoDelete() {
   return { ask: setTarget, alert }
 }
 
-/** 메모 한 줄 — 시점 알약·날짜·내용. 누르면 메뉴(수정·삭제). */
+/**
+ * 메모가 붙은 기록 — 매도 메모는 매도 카드, 매수·보유 메모는 매수 카드 중 작성 날짜의 기록(거래내역 카드 미리보기와 같은 규칙).
+ */
+export function memoRecordId(entry: JournalEntry, data: JournalData): string | null {
+  const records = (entry.context === 'sell' ? data.sells : data.buys).filter((r) => r.tradeId === entry.tradeId)
+  return memoAnchorId(entry.date, records)
+}
+
+/** 메모 한 줄 — 시점 알약·날짜·내용. 누르면 메뉴(거래 보기·수정·삭제). */
 export function MemoRow({ entry, onEdit, onDelete }: { entry: JournalEntry; onEdit: () => void; onDelete: () => void }) {
+  const { data } = useJournal()
+  const { showRecord } = useSheets()
+  const recordId = memoRecordId(entry, data)
   return (
     <Menu
       className="form-row memo-row"
       label="메모 메뉴"
       items={[
+        ...(recordId ? [{ label: '거래 보기', icon: ExternalLink, onSelect: () => showRecord(recordId) }] : []),
         { label: '수정', icon: Pencil, onSelect: onEdit },
         { label: '삭제', icon: Trash2, destructive: true, onSelect: onDelete },
       ]}

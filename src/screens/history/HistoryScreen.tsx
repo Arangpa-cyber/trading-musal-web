@@ -1,6 +1,6 @@
 // 거래내역 — 검색 + 종류/통화 세그먼트, 목록↔캘린더, 월별 머리(그달 실현손익), 카드를 누르면 바로 메뉴.
 import { ArrowDownCircle, Layers, NotebookPen, Pencil, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BUY_REASON_LABEL,
   CASH_TX_LABEL,
@@ -43,7 +43,11 @@ const monthKey = (t: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export function HistoryScreen({ calendar }: { calendar: boolean }) {
+/** 처음 보여줄 기간(개월)과 최소 건수 — 기록이 수백 건이어도 한 번에 다 그리지 않는다. 아래로 내리면 더. */
+const PAGE_MONTHS = 3
+const MIN_ROWS = 30
+
+export function HistoryScreen({ calendar, focus, onFocused }: { calendar: boolean; focus?: string | null; onFocused?: () => void }) {
   const { data, snapshot } = useJournal()
   const [blind] = useBlind()
   const sheets = useSheets()
@@ -98,7 +102,48 @@ export function HistoryScreen({ calendar }: { calendar: boolean }) {
       .sort((a, b) => b.r.date - a.r.date)
   }, [snapshot, data.journals, typeFilter, query, currencyFilter])
 
-  const shown = calendar ? (selectedDay === null ? [] : items.filter((i) => isSameDay(i.r.date, selectedDay))) : items
+  // 무한 스크롤 — 최근 3개월(적어도 30건)부터, 바닥에 닿으면 3개월씩 더. 검색 중이면 전부.
+  const [months, setMonths] = useState(PAGE_MONTHS)
+  const now = new Date()
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - months + 1, 1).getTime()
+  const windowed = query.trim() ? items : items.filter((i, index) => i.r.date >= cutoff || index < MIN_ROWS)
+  const hasMore = !calendar && windowed.length < items.length
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasMore) return
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setMonths((m) => m + PAGE_MONTHS), { rootMargin: '400px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, windowed.length])
+
+  // 메모 "거래 보기"로 들어오면 — 그 카드 날짜까지 목록을 넓히고, 그린 뒤 스크롤해서 잠깐 강조한다.
+  const [pendingFocus, setPendingFocus] = useState<string | null>(null)
+  useEffect(() => {
+    if (!focus) return
+    const target = [...snapshot.buys, ...snapshot.sells].find((r) => r.id === focus)
+    if (target) {
+      const d = new Date(target.date)
+      const need = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth() + 1
+      setMonths((m) => Math.max(m, need))
+      setTypeFilter('all')
+      setCurrencyFilter('all')
+      setQuery('')
+      setPendingFocus(focus)
+    }
+    onFocused?.()
+  }, [focus])
+  useEffect(() => {
+    if (!pendingFocus) return
+    const el = document.getElementById(`record-${pendingFocus}`)
+    if (!el) return
+    setPendingFocus(null)
+    el.scrollIntoView({ block: 'center' })
+    el.classList.add('flash')
+    setTimeout(() => el.classList.remove('flash'), 1600)
+  })
+
+  const shown = calendar ? (selectedDay === null ? [] : items.filter((i) => isSameDay(i.r.date, selectedDay))) : windowed
   const groups: { month: string; items: Item[] }[] = []
   for (const item of shown) {
     const m = monthKey(item.r.date)
@@ -169,7 +214,7 @@ export function HistoryScreen({ calendar }: { calendar: boolean }) {
             {!calendar && <MonthHeader month={g.month} items={g.items} positions={positions} blind={blind} />}
             <div className="group">
               {g.items.map((item) => (
-                <Menu key={`${item.kind}-${item.r.id}`} items={menuFor(item)} className={`history-row row-${item.kind}`} label={`${rowLabel(item)} 메뉴`}>
+                <Menu key={`${item.kind}-${item.r.id}`} anchorId={`record-${item.r.id}`} items={menuFor(item)} className={`history-row row-${item.kind}`} label={`${rowLabel(item)} 메뉴`}>
                   {item.kind === 'buy' ? (
                     <BuyRow r={item.r} position={positions.get(item.r.tradeId)} weights={weights} memo={memos.get(item.r.id)} maxWeight={data.settings.maxWeightPercent} maxStop={data.settings.maxStopLossPercent} blind={blind} />
                   ) : item.kind === 'sell' ? (
@@ -182,6 +227,13 @@ export function HistoryScreen({ calendar }: { calendar: boolean }) {
             </div>
           </section>
         ))
+      )}
+      {hasMore && (
+        <div ref={sentinel} className="load-more">
+          <button type="button" className="text-button" onClick={() => setMonths((m) => m + PAGE_MONTHS)}>
+            이전 기록 더 보기
+          </button>
+        </div>
       )}
       {del.alert}
     </div>

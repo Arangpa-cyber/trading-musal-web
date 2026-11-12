@@ -1,15 +1,17 @@
-// 설정 — 지금은 계정·데이터 백업·초기화만. 매매 기본값·경고 기준·수수료율·환율·원칙·가이드는 4-5단계에서 더한다.
+// 설정 — 지금은 계정·화면 설정(카드 순서)·데이터 백업·초기화. 매매 기본값·경고 기준·수수료율·환율·원칙·가이드는 4-5단계에서 더한다.
 import { useRef, useState } from 'react'
 import { eraseJournal } from '../data/store'
 import { signOut } from '../data/useSession'
 import { downloadBackup, errorMessage, importBackupFile } from '../state/backupActions'
 import { useJournal } from '../state/journal'
+import { CardOrderSheet } from './home/CardOrderSheet'
 
 export function SettingsScreen({ email }: { email: string | undefined }) {
   const { data, reload } = useJournal()
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const [orderSheet, setOrderSheet] = useState(false)
 
   async function run(task: () => Promise<string | null>) {
     setBusy(true)
@@ -37,6 +39,14 @@ export function SettingsScreen({ email }: { email: string | undefined }) {
           로그아웃
         </button>
       </div>
+
+      <div className="group">
+        <div className="group-title">화면 설정</div>
+        <button type="button" className="group-row button" onClick={() => setOrderSheet(true)}>
+          현황 카드 순서 바꾸기
+        </button>
+      </div>
+      {orderSheet && <CardOrderSheet onClose={() => setOrderSheet(false)} />}
 
       <div className="group">
         <div className="group-title">데이터 백업</div>

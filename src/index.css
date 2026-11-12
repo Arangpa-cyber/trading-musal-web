@@ -1228,3 +1228,97 @@ select {
   font-weight: 700;
   border-top: 1px solid var(--hairline);
 }
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+/* 메모 "거래 보기"로 찾아온 카드 — 잠깐 금색 테두리 */
+.flash {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  transition: outline-color 0.4s;
+}
+
+/* 차트 카드 */
+.chart {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.chart .recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+}
+.chart-tip {
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--group);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--muted);
+}
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend-line,
+.legend-dash {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid #3d5470;
+}
+.legend-dash {
+  border-top: 1.5px dashed gray;
+}
+.exposure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bar-track {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pie-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 12px;
+}
+.pie-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+.pie-legend-row.on {
+  background: var(--fill);
+}
+.pie-legend-row i {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.overflow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--fill);
+}

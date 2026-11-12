@@ -39,7 +39,7 @@ export function useBlind(): [boolean, (v: boolean) => void] {
 }
 
 /** 주소 뒤 #/경로 — 브라우저 뒤로 가기·새로고침에도 화면이 유지된다. */
-export function useHashRoute(): [string, (path: string) => void] {
+export function useHashRoute(): [string, (path: string) => void, (path: string) => void] {
   const read = () => window.location.hash.replace(/^#/, '') || '/home'
   const [path, setPath] = useState(read)
   useEffect(() => {
@@ -50,5 +50,10 @@ export function useHashRoute(): [string, (path: string) => void] {
   const navigate = useCallback((next: string) => {
     window.location.hash = next
   }, [])
-  return [path, navigate]
+  /** 뒤로 가기 기록을 남기지 않고 주소만 바꾼다(예: 한 번 쓰고 버리는 ?focus=). */
+  const replace = useCallback((next: string) => {
+    history.replaceState(null, '', `#${next}`)
+    setPath(next)
+  }, [])
+  return [path, navigate, replace]
 }

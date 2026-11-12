@@ -1,5 +1,4 @@
-// 현황 — 프로필 헤더(고정) → 경지(고정) → (기록이 없으면 첫 안내) → 보유 자산 → 확인표.
-// 수익분포·파이차트·총자산 추이·카드 순서는 4-4단계에서 더한다.
+// 현황 — 프로필 헤더(고정) → 경지(고정) → (기록이 없으면 첫 안내) → 나머지 카드(설정의 카드 순서대로).
 import { PlusCircle, UserSquare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { lockedRiskPercent, phaseSeverity, phaseStatusText, tierName, BEOMIN } from '../../core'
@@ -8,9 +7,13 @@ import { useSheets } from '../../state/sheets'
 import { Card, SectionHeader, Text } from '../../ui/components'
 import { useLocalStorage } from '../../ui/hooks'
 import { Alert } from '../../ui/Sheet'
+import { cardOrder } from './cardOrder'
 import { ChecklistCard } from './Checklist'
 import { HoldingsCard } from './HoldingsCard'
+import { PortfolioCard } from './PortfolioCard'
+import { ReturnDistributionCard } from './ReturnDistributionCard'
 import { TierCard } from './TierCard'
+import { TrendCard } from './TrendCard'
 
 export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void }) {
   const { data, snapshot } = useJournal()
@@ -43,8 +46,19 @@ export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void })
         </Card>
       )}
 
-      <HoldingsCard />
-      <ChecklistCard onOpen={onOpenChecklist} />
+      {cardOrder(data.settings.homeCardOrder).map((card) =>
+        card === 'holdings' ? (
+          <HoldingsCard key={card} />
+        ) : card === 'portfolio' ? (
+          <PortfolioCard key={card} />
+        ) : card === 'returnDistribution' ? (
+          <ReturnDistributionCard key={card} />
+        ) : card === 'trend' ? (
+          <TrendCard key={card} />
+        ) : (
+          <ChecklistCard key={card} onOpen={onOpenChecklist} />
+        ),
+      )}
 
       {notice.alert && <Alert title={notice.alert.title} message={notice.alert.message} actions={[{ label: '확인', primary: true, onSelect: notice.dismiss }]} />}
     </div>

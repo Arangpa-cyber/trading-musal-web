@@ -58,12 +58,12 @@ await click('.sheet-bar button', '닫기'); await sleep(200)
 check((await page.$$eval('.memo-preview', (els) => els.map((e) => e.textContent))).some((t) => t.includes('돌파 후 거래량')), '매수 카드에 메모 미리보기')
 
 // 3) 매도 삭제 — 확인 창 → 삭제
-const before = (await page.$$('.row-sell')).length
+const deletedId = await page.$eval('.row-sell', (e) => e.id)
 await click('.row-sell')
 await click('.menu-item', '삭제')
 check((await text()).includes('이 매도 기록을 삭제할까요?'), '삭제 전에 확인 창')
 await click('.alert button', '삭제'); await sleep(300)
-check((await page.$$('.row-sell')).length === before - 1, '매도 기록이 지워진다')
+check(!(await page.$(`#${deletedId}`)), '매도 기록이 지워진다')
 
 // 4) 캘린더
 await click('button[aria-label="캘린더 보기"]')
@@ -96,5 +96,24 @@ await click('.menu-item', '현재가 · 손절가 기록')
 await typeInto('현재가', '171.5')
 await click('.sheet-bar button', '저장'); await sleep(300)
 check((await text()).includes('$171.50'), '현재가 기록이 카드에 반영')
+
+// 7) 메모 → 거래 보기 — 거래내역으로 이동해 그 카드가 강조된다
+await click('button[aria-label="SPCX 메뉴"]')
+await click('.menu-item', '메모')
+await click('button[aria-label="메모 메뉴"]')
+await click('.menu-item', '거래 보기'); await sleep(500)
+check(page.url().includes('#/history'), '메모 "거래 보기"로 거래내역 탭 이동')
+check(!!(await page.$('.flash')), '그 메모가 붙은 카드가 강조된다')
+await shot('h5-jump')
+
+// 8) 무한 스크롤 — 최근 3개월(적어도 30건)만, "이전 기록 더 보기"로 더
+const rowsBefore = (await page.$$('.history-row')).length
+const more = await page.$('.load-more button')
+if (more) {
+  await click('.load-more button'); await sleep(300)
+  check((await page.$$('.history-row')).length > rowsBefore, '"이전 기록 더 보기"로 오래된 기록이 더 나온다')
+} else {
+  console.log('· 기록이 적어 더 보기 버튼 없음')
+}
 check(errors.length === 0, `페이지 오류 없음 ${errors.join(' / ')}`)
 await browser.close()

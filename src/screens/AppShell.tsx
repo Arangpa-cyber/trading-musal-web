@@ -30,7 +30,7 @@ export function AppShell({ email }: { email?: string }) {
 }
 
 function Shell({ email }: { email?: string }) {
-  const [path, navigate] = useHashRoute()
+  const [path, navigate, replace] = useHashRoute()
   const { data, snapshot } = useJournal()
   const [entry, setEntry] = useState<EntryRequest | null>(null)
   // 매도 전 확인 — 그 거래에 보유 메모가 있으면 먼저 보여주고, "그래도 매도할게요"면 입력 시트를 연다.
@@ -41,7 +41,9 @@ function Shell({ email }: { email?: string }) {
   const [markId, setMarkId] = useState<string | null>(null)
   const [bulkMark, setBulkMark] = useState(false)
   const [calendar, setCalendar] = useState(false)
-  const route = path in TITLES ? path : '/home'
+  const [routePath, query] = path.split('?')
+  const route = routePath in TITLES ? routePath : '/home'
+  const focus = new URLSearchParams(query ?? '').get('focus')
   const isTab = route === '/home' || route === '/history' || route === '/settings'
 
   const actions = useMemo<SheetActions>(
@@ -55,8 +57,14 @@ function Shell({ email }: { email?: string }) {
       openAsset: setAsset,
       openMark: setMarkId,
       openBulkMark: () => setBulkMark(true),
+      showRecord: (recordId) => {
+        setMemos(null)
+        setAsset(null)
+        setCalendar(false)
+        navigate(`/history?focus=${recordId}`)
+      },
     }),
-    [data.journals],
+    [data.journals, navigate],
   )
   const memo = pendingSell?.kind === 'sell' ? holdingMemo(data.journals, pendingSell.positionId) : null
   const markPosition = snapshot.openPositions.find((p) => p.id === markId)
@@ -78,7 +86,7 @@ function Shell({ email }: { email?: string }) {
         />
         <Page>
           {route === '/home' && <HomeScreen onOpenChecklist={() => navigate('/checklist')} />}
-          {route === '/history' && <HistoryScreen calendar={calendar} />}
+          {route === '/history' && <HistoryScreen calendar={calendar} focus={focus} onFocused={() => replace('/history')} />}
           {route === '/settings' && <SettingsScreen email={email} />}
           {route === '/checklist' && <ChecklistDetail />}
         </Page>

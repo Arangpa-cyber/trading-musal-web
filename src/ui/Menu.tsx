@@ -15,7 +15,7 @@ export type MenuItem =
     }
   | 'divider'
 
-export function Menu({ items, children, className = '', label }: { items: MenuItem[]; children: ReactNode; className?: string; label?: string }) {
+export function Menu({ items, children, className = '', label, anchorId }: { items: MenuItem[]; children: ReactNode; className?: string; label?: string; anchorId?: string }) {
   const [open, setOpen] = useState(false)
   // 누른 자리 — 메뉴를 그 근처에 띄운다(iOS처럼). 키보드로 열면 버튼 가운데.
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null)
@@ -24,6 +24,7 @@ export function Menu({ items, children, className = '', label }: { items: MenuIt
     <>
       <button
         ref={anchor}
+        id={anchorId}
         type="button"
         className={`menu-anchor ${className}`}
         aria-haspopup="menu"

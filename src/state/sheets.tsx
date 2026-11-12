@@ -14,6 +14,8 @@ export interface SheetActions {
   openAsset: (assetName: string) => void
   openMark: (positionId: string) => void
   openBulkMark: () => void
+  /** 시트를 다 닫고 거래내역에서 그 기록 카드로 이동(메모 "거래 보기"). */
+  showRecord: (recordId: string) => void
 }
 
 export const SheetContext = createContext<SheetActions | null>(null)
