@@ -15,8 +15,8 @@ npm run build
 ## 진행 상황
 
 1. 뼈대 · 작업 규칙(CLAUDE.md) — 완료
-2. 계산 엔진(`src/core`) + 테스트 — 완료. 지금 화면은 백업 파일을 열어 숫자를 확인하는 임시 화면
-3. Supabase 로그인(구글) · 데이터 저장 — 예정
+2. 계산 엔진(`src/core`) + 테스트 — 완료
+3. Supabase 로그인(구글) · 데이터 저장 — 완료 (`supabase/schema.sql`을 SQL Editor에서 실행)
 4. 화면(현황 · 거래내역 · 입력 · 설정 · 가이드) — 예정
 5. PWA · 배포 — 예정
 

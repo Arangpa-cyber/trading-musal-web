@@ -22,7 +22,9 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 
 - Vite + React + TypeScript(strict, `erasableSyntaxOnly` — `enum`·파라미터 프로퍼티 금지, 문자열 유니언 사용).
 - 테스트: Vitest, **`TZ=Asia/Seoul`로 실행**(`npm test`). 날짜 계산은 기기 시간대 기준.
-- (예정) Supabase — DB + 구글 로그인 + RLS(행 단위 보안: 자기 데이터만). PWA(홈 화면에 추가). 배포 Vercel 또는 GitHub Pages.
+- Supabase(프로젝트 `vwwrazzwzbaqfvsasvhb`, 서울) — 구글 로그인 + DB + RLS(본인 기록만). 주소·publishable 키는 공개값이라
+  `src/data/supabase.ts`에 기본값으로 둔다(.env.local의 `VITE_SUPABASE_URL`·`VITE_SUPABASE_KEY`로 바꿀 수 있음). service_role 키는 절대 코드에 넣지 않는다.
+- (예정) PWA(홈 화면에 추가). 배포 Vercel 또는 GitHub Pages — 배포 주소가 생기면 Supabase URL Configuration·Google 리디렉션에 추가.
 - **실제 거래 데이터·백업 JSON·`.env`는 절대 커밋하지 않는다**(`.gitignore`).
 
 ## 폴더
@@ -33,7 +35,18 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
     `checklist.ts` 확인표, `memo.ts` 메모 위치, `deletePlan.ts` 매수 삭제, `maintenance.ts` 옛 데이터 보정,
     `importIos.ts` iOS 백업 가져오기, `backup.ts` 웹 백업.
   - `__tests__/` — iOS `CoreServiceTests` 시나리오를 옮긴 회귀 테스트. 계산 수정 시 반드시 통과.
-- `src/App.tsx` — 지금은 엔진 확인용 임시 화면(백업 파일을 열어 숫자 비교).
+- `src/data/` — 저장(Supabase). `store.ts` 테이블 ↔ 웹 형식, `useSession.ts` 구글 로그인. 계산은 하지 않는다.
+- `src/screens/` — 화면. 지금은 로그인 → 별호(온보딩) → 임시 요약 + 백업 가져오기·내보내기·초기화.
+- `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
+
+## DB (2026-11-13)
+
+- 테이블 6개: `buys`·`sells`·`cash_txs`·`journals`(기록 = `data` JSONB에 웹 형식 그대로, 키 = (user_id, id)),
+  `profiles`(별호·원칙), `settings`(`data` JSONB). 기록에 칸이 늘어도 DB를 안 바꾼다 — 대신 `core/backup.ts`·`store.ts`의
+  `loadJournal`에서 옛 데이터에 없는 칸을 기본값으로 채운다.
+- 모든 테이블 RLS "own rows"(user_id = auth.uid()). DB 함수 `replace_journal(p)`(백업 가져오기 — 한 트랜잭션으로 통째로 교체,
+  profile이 null이면 지금 프로필 유지)·`erase_journal()`(데이터 초기화 — 지우기 진입점 하나), 둘 다 security invoker.
+- 기록 한 건 저장·삭제 = `saveRecords`·`deleteRecords`. 로그인 뒤 전부 불러와(`loadJournal`) `buildSnapshot`으로 계산한다.
 
 ## 저장 모델 — 웹에서 바뀐 것 (설계 결정 1~3, 2026-11-12)
 

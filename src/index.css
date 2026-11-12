@@ -61,3 +61,79 @@ tbody th {
   color: GrayText;
   width: 45%;
 }
+
+.center {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.center-text {
+  text-align: center;
+}
+
+button {
+  font: inherit;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, GrayText 40%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: white;
+  min-width: 220px;
+}
+
+button.danger {
+  color: #c0392b;
+}
+
+button.link {
+  border: none;
+  color: GrayText;
+  text-decoration: underline;
+}
+
+input.text {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid GrayText;
+  min-width: 220px;
+  text-align: center;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notice {
+  white-space: pre-line;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #c0392b 8%, transparent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
