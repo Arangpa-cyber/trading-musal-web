@@ -113,3 +113,23 @@ grant execute on function public.erase_journal() to authenticated;
 grant execute on function public.replace_journal(jsonb) to authenticated;
 revoke execute on function public.erase_journal() from anon, public;
 revoke execute on function public.replace_journal(jsonb) from anon, public;
+
+-- 회원 탈퇴 — 로그인 계정(auth.users)을 지운다. 모든 테이블이 `on delete cascade`라 기록·프로필·설정도 함께 지워진다.
+-- auth.users는 일반 사용자 권한으로 지울 수 없어 security definer(함수 주인 = postgres 권한)로 실행하되,
+-- 지우는 대상은 항상 부른 사람 자신(auth.uid())뿐이다.
+create or replace function public.delete_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'not signed in';
+  end if;
+  delete from auth.users where id = uid;
+end $$;
+
+revoke execute on function public.delete_account() from anon, public;
+grant execute on function public.delete_account() to authenticated;

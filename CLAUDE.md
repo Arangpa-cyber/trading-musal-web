@@ -14,8 +14,11 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   `index.html` apple-touch-icon·theme-color. Chrome 설치 가능 검사(CDP `Page.getInstallabilityErrors`) 오류 0.
   서비스 워커(오프라인 캐시)는 없음 — 데이터가 서버에 있어 우선순위 낮음, 하려면 먼저 물어볼 것.
 - 빌드 확인: `npm run build && npx vite preview`(4173, 배포와 같은 `/trading-musal-web/` 경로 — vite.config `isPreview`).
+- 공개 준비(2026-11-13): 개인정보 처리방침 `public/privacy.html`(정적 페이지, 로그인 없이 열림 — 운영자 Arangpa, 연락처 arangpa86@gmail.com,
+  로그인 화면·설정 앱 정보에서 링크), 회원 탈퇴(설정 → 계정, DB 함수 `delete_account`). **사용자가 할 일**: `schema.sql`을 SQL Editor에서 다시 Run
+  (탈퇴 함수), Google 인증 플랫폼 → 브랜딩(홈페이지·방침 주소·승인된 도메인 `arangpa-cyber.github.io`) → 대상 → 앱 게시. 방침 내용이 바뀌면(모으는 정보·업체) 페이지도 고친다.
 - 다음 후보: 사용자가 실제로 쓰면서 나오는 수정 요청.
-- 실제 계정(Supabase)으로 확인 못 한 것: 데이터 초기화(프로필까지 지움 → 별호 화면), 설정 저장. 사용자 확인 필요.
+- 실제 계정(Supabase)으로 확인 못 한 것: 데이터 초기화(프로필까지 지움 → 별호 화면), 설정 저장, 회원 탈퇴(→ 로그인 화면). 사용자 확인 필요.
 - 개발 서버: `npm run dev`(5173). 확인: `npm test`, `node scripts/e2e-entry.mjs /tmp`, `e2e-history.mjs`, `e2e-settings.mjs`, `scripts/shot.mjs`.
 - **iOS 화면 디자인을 임의로 바꾸지 않는다** — 바꿔야 하면 코딩 전에 이유와 대안을 묻는다(파이 지시선 라벨을 단순화했다가 되돌림, 2026-11-13).
 
@@ -36,7 +39,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   Sign In / Providers → Google 켜짐(클라이언트 ID·보안 비밀번호는 Supabase에만 있음).
 - **Google Cloud** OAuth 클라이언트(웹, 리디렉션 URI = `https://vwwrazzwzbaqfvsasvhb.supabase.co/auth/v1/callback`). 앱이 "테스트" 상태면
   등록한 테스트 사용자만 로그인된다 — 다른 사람에게 공개할 땐 Google 인증 플랫폼 → 대상 → **앱 게시**.
-- 공개 서비스로 열 때 남은 일: 개인정보 처리방침 페이지(아직 없음).
+- 공개 서비스로 열 때: 개인정보 처리방침 = 배포 주소 + `privacy.html`. 남은 일은 위 "공개 준비"의 사용자 할 일.
 
 ## 진행 방식 (반드시 지킬 것)
 
@@ -122,6 +125,8 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   profile이 null이면 지금 프로필 유지)·`erase_journal()`(데이터 초기화 — 지우기 진입점 하나), 둘 다 security invoker.
 - 웹 지우기: `eraseJournal`(기록만 — 백업 가져오기 DB 함수가 씀), `eraseAll`(설정 "데이터 초기화" — 기록 + 프로필, iOS와 같게, 설정은 남김).
   초기화는 "백업하고 초기화 / 바로 초기화(한 번 더 확인)" 중 고른다.
+- 회원 탈퇴 = `deleteAccount`(store.ts) → DB 함수 `delete_account()`(security definer, 부른 사람의 auth.users 한 줄만 지움 → 모든 테이블 on delete cascade)
+  → 이 기기 세션만 로그아웃(`signOut({ scope: 'local' })`). 탈퇴도 "백업하고 탈퇴 / 바로 탈퇴(한 번 더 확인)".
 - 기록 한 건 저장·삭제 = `saveRecords`·`deleteRecords`. 로그인 뒤 전부 불러와(`loadJournal`) `buildSnapshot`으로 계산한다.
 
 ## 저장 모델 — 웹에서 바뀐 것 (설계 결정 1~3, 2026-11-12)

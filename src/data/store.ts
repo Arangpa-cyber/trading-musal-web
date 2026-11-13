@@ -108,3 +108,10 @@ export async function eraseAll(): Promise<void> {
   const { error } = await supabase.from('profiles').delete().not('user_id', 'is', null)
   if (error) throw error
 }
+
+/** 회원 탈퇴 — 로그인 계정과 모든 기록·프로필·설정을 지운다(DB 함수 `delete_account`, 되돌릴 수 없음). 끝나면 이 기기에서도 로그아웃. */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_account')
+  if (error) throw error
+  await supabase.auth.signOut({ scope: 'local' }) // 계정이 없어져 서버 로그아웃은 실패하므로 이 기기 세션만 지운다
+}

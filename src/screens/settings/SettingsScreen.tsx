@@ -1,9 +1,9 @@
 // 설정 — iOS 순서: 프로필(별호·원칙) → 매매 기본값 → 경고 기준 → 매수 수수료율 → 환율 → 화면 설정 → 도움말(가이드)
-// → 데이터 백업 → 초기화 → 계정(웹: 구글 로그인) → 앱 정보. 숫자 칸은 칸을 벗어나거나 Enter를 누르면 저장한다.
-import { ChevronRight } from 'lucide-react'
+// → 데이터 백업 → 초기화 → 계정(웹: 구글 로그인·회원 탈퇴) → 앱 정보(개인정보 처리방침). 숫자 칸은 칸을 벗어나거나 Enter를 누르면 저장한다.
+import { ChevronRight, ExternalLink } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { fixedDateText, type Settings } from '../../core'
-import { eraseAll } from '../../data/store'
+import { deleteAccount, eraseAll } from '../../data/store'
 import { signOut } from '../../data/useSession'
 import { downloadBackup, errorMessage, importBackupFile } from '../../state/backupActions'
 import { useJournal } from '../../state/journal'
@@ -23,7 +23,7 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
   const toast = useToast()
   const s = data.settings
   const [sheet, setSheet] = useState<'rules' | 'fx' | 'order' | null>(null)
-  const [alert, setAlert] = useState<'nickname' | 'reset' | 'resetConfirm' | null>(null)
+  const [alert, setAlert] = useState<'nickname' | 'reset' | 'resetConfirm' | 'withdraw' | 'withdrawConfirm' | null>(null)
   const [nickname, setNickname] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -50,6 +50,16 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
       await reload() // 프로필이 없어져 별호 정하기 화면으로 간다
     } catch (e) {
       setNotice(`초기화하지 못했어요: ${errorMessage(e)}`)
+      setBusy(false)
+    }
+  }
+
+  async function withdraw() {
+    setBusy(true)
+    try {
+      await deleteAccount() // 로그아웃되어 로그인 화면으로 간다
+    } catch (e) {
+      setNotice(`탈퇴하지 못했어요: ${errorMessage(e)}`)
       setBusy(false)
     }
   }
@@ -157,13 +167,19 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
         </button>
       </Group>
 
-      <Group title="계정" footer="같은 구글 계정으로 PC·폰 어디서 들어가도 같은 기록이 보여요.">
+      <Group
+        title="계정"
+        footer="같은 구글 계정으로 PC·폰 어디서 들어가도 같은 기록이 보여요. 회원 탈퇴는 계정과 모든 기록·설정을 지워요. 되돌릴 수 없어요."
+      >
         <div className="group-row">
           <span>구글 계정</span>
           <span className="muted ellipsis">{email}</span>
         </div>
         <button type="button" className="group-row button" onClick={() => void signOut()}>
           로그아웃
+        </button>
+        <button type="button" className="group-row button destructive" disabled={busy} onClick={() => setAlert('withdraw')}>
+          회원 탈퇴
         </button>
       </Group>
 
@@ -176,6 +192,10 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
           <span>버전</span>
           <span className="muted">웹 {__BUILD_DATE__}</span>
         </div>
+        <a className="group-row" href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noopener">
+          <span>개인정보 처리방침</span>
+          <ExternalLink size={16} className="tone-muted" />
+        </a>
       </Group>
 
       {sheet === 'rules' && <RulesSheet onClose={() => setSheet(null)} />}
@@ -232,6 +252,41 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
               onSelect: () => {
                 setAlert(null)
                 void erase()
+              },
+            },
+          ]}
+        />
+      )}
+      {alert === 'withdraw' && (
+        <Alert
+          title="회원 탈퇴할까요?"
+          message="구글 로그인 계정과 모든 매매·예수금 기록, 메모, 프로필, 설정이 지워져요. 먼저 백업해두는 걸 추천해요."
+          actions={[
+            {
+              label: '백업하고 탈퇴',
+              onSelect: () => {
+                setAlert(null)
+                exportFile()
+                void withdraw()
+              },
+            },
+            { label: '바로 탈퇴', destructive: true, onSelect: () => setAlert('withdrawConfirm') },
+            { label: '취소', onSelect: () => setAlert(null) },
+          ]}
+        />
+      )}
+      {alert === 'withdrawConfirm' && (
+        <Alert
+          title="정말 탈퇴할까요?"
+          message="이 작업은 되돌릴 수 없어요. 같은 구글 계정으로 다시 가입하면 빈 기록부터 시작해요."
+          actions={[
+            { label: '취소', onSelect: () => setAlert(null) },
+            {
+              label: '탈퇴',
+              destructive: true,
+              onSelect: () => {
+                setAlert(null)
+                void withdraw()
               },
             },
           ]}
