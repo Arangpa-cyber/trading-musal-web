@@ -17,9 +17,11 @@ import { ChecklistDetail } from './home/Checklist'
 import { HomeScreen } from './home/HomeScreen'
 import { BulkMarkSheet, MarkPriceSheet } from './home/MarkSheets'
 import { MemoThreadSheet } from './memo/MemoSheets'
-import { SettingsScreen } from './SettingsScreen'
+import { GuideScreen } from './guide/GuideScreen'
+import { FxRateSheet } from './settings/FxRateSheet'
+import { SettingsScreen } from './settings/SettingsScreen'
 
-const TITLES: Record<string, string> = { '/home': '현황', '/history': '거래내역', '/settings': '설정', '/checklist': '확인표' }
+const TITLES: Record<string, string> = { '/home': '현황', '/history': '거래내역', '/settings': '설정', '/checklist': '확인표', '/guide': '가이드' }
 
 export function AppShell({ email }: { email?: string }) {
   return (
@@ -40,6 +42,7 @@ function Shell({ email }: { email?: string }) {
   const [asset, setAsset] = useState<string | null>(null)
   const [markId, setMarkId] = useState<string | null>(null)
   const [bulkMark, setBulkMark] = useState(false)
+  const [fxSheet, setFxSheet] = useState(false)
   const [calendar, setCalendar] = useState(false)
   const [routePath, query] = path.split('?')
   const route = routePath in TITLES ? routePath : '/home'
@@ -57,6 +60,7 @@ function Shell({ email }: { email?: string }) {
       openAsset: setAsset,
       openMark: setMarkId,
       openBulkMark: () => setBulkMark(true),
+      openFxRate: () => setFxSheet(true),
       showRecord: (recordId) => {
         setMemos(null)
         setAsset(null)
@@ -87,7 +91,8 @@ function Shell({ email }: { email?: string }) {
         <Page>
           {route === '/home' && <HomeScreen onOpenChecklist={() => navigate('/checklist')} />}
           {route === '/history' && <HistoryScreen calendar={calendar} focus={focus} onFocused={() => replace('/history')} />}
-          {route === '/settings' && <SettingsScreen email={email} />}
+          {route === '/settings' && <SettingsScreen email={email} onOpenGuide={() => navigate('/guide')} />}
+          {route === '/guide' && <GuideScreen />}
           {route === '/checklist' && <ChecklistDetail />}
         </Page>
         {isTab && <TabBar current={route} onSelect={navigate} />}
@@ -97,6 +102,7 @@ function Shell({ email }: { email?: string }) {
         {memos && <MemoThreadSheet {...memos} onClose={() => setMemos(null)} />}
         {asset && <AssetDetailSheet assetName={asset} onClose={() => setAsset(null)} />}
         {markPosition && <MarkPriceSheet position={markPosition} onClose={() => setMarkId(null)} />}
+        {fxSheet && <FxRateSheet onClose={() => setFxSheet(false)} />}
         {bulkMark && <BulkMarkSheet positions={[...snapshot.openPositions].sort((a, b) => b.positionCost - a.positionCost)} onClose={() => setBulkMark(false)} />}
         {pendingSell && memo && (
           // 보유 중일 때 남겨둔 생각을 매도 직전에 한 번 더 — 감정적으로 급하게 파는 걸 되돌아보게.

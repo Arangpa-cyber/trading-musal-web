@@ -51,19 +51,23 @@ export function Alert({
   title,
   message,
   actions,
+  children,
 }: {
   title: string
   message?: string
-  actions: { label: string; onSelect: () => void; destructive?: boolean; primary?: boolean }[]
+  actions: { label: string; onSelect: () => void; destructive?: boolean; primary?: boolean; disabled?: boolean }[]
+  /** 입력 칸 등(별호 바꾸기) */
+  children?: ReactNode
 }) {
   return createPortal(
     <div className="sheet-backdrop alert-backdrop">
       <div className="alert" role="alertdialog" aria-modal aria-label={title}>
         <h2>{title}</h2>
         {message && <p>{message}</p>}
-        <div className="alert-actions">
+        {children && <div className="alert-body">{children}</div>}
+        <div className={`alert-actions ${actions.length > 2 ? 'vertical' : ''}`}>
           {actions.map((a) => (
-            <button key={a.label} type="button" className={`${a.destructive ? 'destructive' : ''} ${a.primary ? 'bold' : ''}`} onClick={a.onSelect}>
+            <button key={a.label} type="button" disabled={a.disabled} className={`${a.destructive ? 'destructive' : ''} ${a.primary ? 'bold' : ''}`} onClick={a.onSelect}>
               {a.label}
             </button>
           ))}

@@ -1,10 +1,12 @@
 // 수익 분포 — 완료 거래(팔린 매수 1개 = 막대 하나의 1건)의 수익률을 5% 구간 막대로. X축 −20%~+60% 고정,
-// 그 밖은 양 끝 구간("−20%↓"·"+60%↑")에 합산. 배경은 구간별 4가지 옅은 톤, 평균은 점선. 양 끝 막대를 누르면 그 거래 목록.
+// 그 밖은 양 끝 구간("−20%↓"·"+60%↑")에 합산. 배경은 구간별 4가지 옅은 톤, 평균은 점선.
+// 막대를 누르면 그 구간 거래 목록, 거래를 누르면 거래내역의 그 매도 카드로 간다(큰 손실 복기용, 2026-11-13 채택).
 import { BarChart3 } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, Cell, ReferenceArea, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { fixedDateText } from '../../core'
 import { useJournal } from '../../state/journal'
+import { useSheets } from '../../state/sheets'
 import { Card, SectionHeader, Text } from '../../ui/components'
 import { percent } from '../../ui/format'
 
@@ -20,11 +22,14 @@ const zone = (start: number) => {
 
 export function ReturnDistributionCard() {
   const { snapshot } = useJournal()
-  const [overflow, setOverflow] = useState<'low' | 'high' | null>(null)
+  const { showRecord } = useSheets()
+  /** 누른 막대(구간 시작값) */
+  const [picked, setPicked] = useState<number | null>(null)
   const trades = snapshot.outcomes.map((o) => ({
     name: o.assetName + (o.lotLabel ? ` · ${o.lotLabel}` : ''),
     date: o.closeDate,
     r: o.returnPercent,
+    sellId: o.sellId,
   }))
   const bins: { start: number; mid: number; count: number; overflow: 'low' | 'high' | null }[] = [
     { start: LOW - WIDTH, mid: LOW - WIDTH / 2, count: trades.filter((t) => t.r < LOW).length, overflow: 'low' },
@@ -38,7 +43,10 @@ export function ReturnDistributionCard() {
   const sd = trades.length > 1 && avg !== null ? Math.sqrt(trades.reduce((a, t) => a + (t.r - avg) ** 2, 0) / (trades.length - 1)) : null
   const ticks = [LOW - WIDTH / 2, -10, 0, 10, 20, 30, 40, 50, HIGH + WIDTH / 2]
   const tickLabel = (v: number) => (v <= LOW - WIDTH / 2 + 0.01 ? '-20%↓' : v >= HIGH + WIDTH / 2 - 0.01 ? '+60%↑' : `${v}%`)
-  const shownOverflow = overflow ? trades.filter((t) => (overflow === 'low' ? t.r < LOW : t.r >= HIGH)) : []
+  const inBin = (start: number) => (t: { r: number }) =>
+    start < LOW ? t.r < LOW : start >= HIGH ? t.r >= HIGH : t.r >= start && t.r < start + WIDTH
+  const pickedTrades = picked === null ? [] : trades.filter(inBin(picked)).sort((a, b) => a.r - b.r)
+  const binTitle = (start: number) => (start < LOW ? '-20% 이하' : start >= HIGH ? '+60% 이상' : `${start}% ~ ${start + WIDTH}%`)
 
   return (
     <Card>
@@ -64,10 +72,10 @@ export function ReturnDistributionCard() {
             <YAxis domain={[0, top]} allowDecimals={false} tick={{ fontSize: 10 }} tickCount={3} />
             <Bar dataKey="count" barSize={14} radius={[3, 3, 0, 0]} isAnimationActive={false} onClick={(d) => {
               const bin = (d as unknown as { payload?: (typeof bins)[number] }).payload
-              if (bin?.overflow && bin.count > 0) setOverflow(bin.overflow)
+              if (bin && bin.count > 0) setPicked((cur) => (cur === bin.start ? null : bin.start))
             }}>
               {bins.map((b) => (
-                <Cell key={b.start} fill="var(--ink)" cursor={b.overflow && b.count ? 'pointer' : undefined} />
+                <Cell key={b.start} fill={picked === b.start ? 'var(--gold)' : 'var(--ink)'} cursor={b.count ? 'pointer' : undefined} />
               ))}
             </Bar>
             {avg !== null && (
@@ -77,23 +85,23 @@ export function ReturnDistributionCard() {
         </ResponsiveContainer>
       </div>
       {trades.length === 0 && <Text tone="muted" size="small">완결된 매매가 쌓이면 분포가 표시돼요.</Text>}
-      {overflow && (
+      {picked !== null && (
         <div className="overflow-list">
           <div className="row-between">
             <strong className="small">
-              {overflow === 'low' ? '-20% 이하' : '+60% 이상'} 거래 {shownOverflow.length}건
+              {binTitle(picked)} 거래 {pickedTrades.length}건
             </strong>
-            <button type="button" className="text-button small" onClick={() => setOverflow(null)}>
+            <button type="button" className="text-button small" onClick={() => setPicked(null)}>
               닫기
             </button>
           </div>
-          {shownOverflow.map((t, i) => (
-            <div key={i} className="row-between small">
+          {pickedTrades.map((t, i) => (
+            <button key={i} type="button" className="row-between small trade-link" onClick={() => showRecord(t.sellId)}>
               <span>
                 <strong>{t.name}</strong> <span className="muted tiny">{fixedDateText(t.date)}</span>
               </span>
-              <Text bold tone={t.r >= 0 ? 'red' : 'blue'}>{percent(t.r, true)}</Text>
-            </div>
+              <Text bold tone={t.r >= 0 ? 'red' : 'blue'}>{percent(t.r, true)} ›</Text>
+            </button>
           ))}
         </div>
       )}

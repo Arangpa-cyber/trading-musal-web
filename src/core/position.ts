@@ -145,6 +145,8 @@ export interface TradeOutcome {
   closeDate: Millis
   /** 같은 매도로 같이 팔린 매수는 같은 키 — 경지 연속 횟수는 매도 1회당 한 번만 센다. */
   stepKey: string
+  /** 이 거래를 끝낸 매도 기록 id(옛 기록 포지션 1건이면 마지막 매도) — 화면에서 그 매도 카드로 이동. */
+  sellId: string
   /** 같은 시각 정렬용(N-1 = 0, N-2 = 1…). */
   order: number
   returnPercent: number
@@ -666,7 +668,8 @@ export class TradePosition {
     if (this.hasLegacySells) {
       const r = this.returnPercent
       const end = this.lastSellDate
-      if (!this.isClosed || r === null || end === null) return []
+      const lastSell = maxBy(this.sells, (s) => s.date)
+      if (!this.isClosed || r === null || end === null || !lastSell) return []
       return [
         {
           id: this.id,
@@ -676,6 +679,7 @@ export class TradePosition {
           buyDate: this.firstBuyDate ?? end,
           closeDate: end,
           stepKey: this.id,
+          sellId: lastSell.id,
           order: 0,
           returnPercent: r,
           tradingProfit: this.tradingProfit ?? 0,
@@ -696,6 +700,7 @@ export class TradePosition {
           buyDate: buy.date,
           closeDate: sell.date,
           stepKey: idKey(sell.id),
+          sellId: sell.id,
           order: index,
           returnPercent: r,
           tradingProfit: this.lotProfit(buy, sell.unitPrice),

@@ -5,6 +5,16 @@
 **iOS 앱(SwiftUI, `~/Downloads/XcodeProj`)을 대체한다**(2026-11-12 결정 — 웹 하나로 진행, iOS 앱은 더 고치지 않음).
 iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정하지 않는다. PC·모바일 브라우저, 다른 사람도 쓰는 서비스.
 
+## 지금 상태 · 다음 할 일 (2026-11-13 — 새 세션은 여기부터)
+
+- 1~4단계 완료: 계산 엔진·테스트, 구글 로그인·Supabase 저장, 화면 전부(현황·거래내역·입력·수정·메모·모아보기·차트·설정·가이드).
+  배포: https://arangpa-cyber.github.io/trading-musal-web/ (`npm run deploy`).
+- **다음 = 5단계 PWA**: 앱 아이콘(무협 테마)·`manifest.webmanifest`·`apple-touch-icon`·`theme-color`, 홈 화면에 추가했을 때 전체 화면.
+  (오프라인 캐시는 데이터가 서버에 있어 우선순위 낮음 — 하려면 먼저 물어볼 것.)
+- 실제 계정(Supabase)으로 확인 못 한 것: 데이터 초기화(프로필까지 지움 → 별호 화면), 설정 저장. 사용자 확인 필요.
+- 개발 서버: `npm run dev`(5173). 확인: `npm test`, `node scripts/e2e-entry.mjs /tmp`, `e2e-history.mjs`, `e2e-settings.mjs`, `scripts/shot.mjs`.
+- **iOS 화면 디자인을 임의로 바꾸지 않는다** — 바꿔야 하면 코딩 전에 이유와 대안을 묻는다(파이 지시선 라벨을 단순화했다가 되돌림, 2026-11-13).
+
 ## 진행 방식 (반드시 지킬 것)
 
 - **"코딩해"라고 명시적으로 말하기 전까지는 절대 파일을 수정하지 않는다.** 기능 요청·버그 제보를 받으면 먼저
@@ -39,8 +49,10 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
     `importIos.ts` iOS 백업 가져오기, `backup.ts` 웹 백업.
   - `__tests__/` — iOS `CoreServiceTests` 시나리오를 옮긴 회귀 테스트. 계산 수정 시 반드시 통과.
 - `src/data/` — 저장(Supabase). `store.ts` 테이블 ↔ 웹 형식, `useSession.ts` 구글 로그인. 계산은 하지 않는다.
-- `src/screens/` — 화면. `JournalScreen`(불러오기 → 온보딩 또는 앱) → `AppShell`(위 막대·아래 3탭·#/주소 라우팅·입력 시트) →
-  `home/`(현황: `HomeScreen`·`TierCard`·`HoldingsCard`·`Checklist`), `SettingsScreen`.
+- `src/screens/` — 화면. `JournalScreen`(불러오기 → 온보딩 또는 앱) → `AppShell`(위 막대·아래 3탭·#/주소 라우팅·시트) →
+  `home/`(현황), `history/`, `entry/`, `edit/`, `memo/`, `settings/`(`SettingsScreen` iOS 순서·`FxRateSheet`·`CardOrderSheet`),
+  `guide/`(`GuideScreen` 흐름 설명 + 용어 사전 + 검색, `helpText.ts` = iOS HelpText 이식 — **명칭이 바뀌면 반드시 같이 고친다**,
+  승급 조건 표는 `tierRequirementsText()`로 자동). 라우트: #/home #/history #/settings #/checklist #/guide.
 - `src/state/` — `journal.tsx`(데이터+스냅샷 컨텍스트, `useJournal()` — 화면은 계산을 여기 스냅샷에서만 가져온다), `entry.ts`(입력 시트 요청),
   `backupActions.ts`(가져오기·내보내기 공용).
 - `src/ui/` — 공용 부품: `components.tsx`(Card·SectionHeader·Pill·PlanGrid·StatCell·Gauge·Blind), `Menu.tsx`(탭하면 누른 자리에 뜨는 메뉴),
@@ -68,9 +80,11 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - 메모 "거래 보기"(2026-11-13 채택): 메모가 붙은 카드(`memoRecordId` — 매도 메모 = 매도 카드, 매수·보유 메모 = 매수 카드, 작성 날짜 기준)로
   거래내역 이동 `#/history?focus=<id>` → 그 날짜까지 목록을 넓히고 스크롤 + 금색 강조 후 주소에서 focus를 지운다(`useHashRoute` replace).
 - 현황 차트(Recharts, `screens/home/`): `ReturnDistributionCard`(5% 구간·양 끝 합산·배경 4톤·평균 점선, 양 끝 막대 누르면 목록),
-  `PortfolioCard`(iOS의 지시선 라벨 대신 큰 조각 안쪽 라벨 + 아래 색·비중 목록, 통화 노출 막대), `TrendCard`(총자산|누적손익 세그먼트 =
-  localStorage `assetTrendMode`, 연도 페이지, 계단선 stepAfter, ▲▼★, 최고점 대비). 카드 순서 = `settings.homeCardOrder`(iOS 백업 키와 같음,
-  `cardOrder.ts`), 설정 "현황 카드 순서 바꾸기"(`CardOrderSheet`). ⚠️ Recharts 라벨 함수는 index 대신 `payload`를 쓴다(종목이 빠진 직후 index가 옛 목록을 가리켜 오류).
+  `PortfolioCard`(iOS 파이 그대로 — SVG + `pieLayout.ts`(iOS PieChartLayout 이식: 안쪽 두 줄 라벨/바깥 지시선 라벨, 겹침 밀어내기, 교차 없는
+  계단 기둥, 1% 미만은 누를 때만, 글자 폭은 canvas로 재고 가운데 "…"), 통화 노출 막대), `TrendCard`(총자산|누적손익 세그먼트 =
+  localStorage `assetTrendMode`, 기간 칩 3개월·6개월·1년·전체·연도별 = `assetTrendRange`, 계단선 stepAfter, ▲▼★, 최고점 대비, 총자산 숫자 누르면 설정 환율).
+  수익분포 막대를 누르면 그 구간 거래 목록 → 누르면 그 매도 카드로(`TradeOutcome.sellId` → `showRecord`). 카드 순서 = `settings.homeCardOrder`(iOS 백업 키와 같음,
+  `cardOrder.ts`), 설정 "현황 카드 순서 바꾸기"(`settings/CardOrderSheet` — iOS처럼 ≡ 손잡이로 끌기, 놓으면 저장). ⚠️ Recharts 라벨 함수는 index 대신 `payload`를 쓴다(종목이 빠진 직후 index가 옛 목록을 가리켜 오류).
 - `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
 
 ## DB (2026-11-13)
@@ -109,7 +123,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   목록형(거래내역·메모·가이드·설정) = 시스템 그룹 목록 스타일. 결과 박스는 하나의 스타일(연한 강조색 배경).
 - 블라인드 모드: 금액만 •••(비율은 보임), 기기별 설정(백업 미포함, localStorage `blindMode`).
 - PC 화면 = 폰과 같은 한 줄을 가운데에(폭 720px, 사용자 결정 A). 시트는 폰에선 아래에서, PC에선 가운데 창.
-- 진행(2026-11-13): 4-1 앱 틀 + 현황(경지·보유자산·확인표) 완료 → 4-2 입력 시트 완료 → 4-3 거래내역·메모·수정·모아보기·현재가 기록 완료 → 4-4 차트 카드·카드 순서 완료
+- 진행(2026-11-13): 4-1 앱 틀 + 현황(경지·보유자산·확인표) 완료 → 4-2 입력 시트 완료 → 4-3 거래내역·메모·수정·모아보기·현재가 기록 완료 → 4-4 차트 카드·카드 순서 완료 → 4-5 설정·가이드 완료
   → 4-5 설정·원칙·가이드. 아직 없는 메뉴 항목은 비활성 + "다음 단계에서 만들어요".
 
 ## 매매 기록 핵심 규칙 (iOS와 같음 — 자세한 근거는 iOS CLAUDE.md)

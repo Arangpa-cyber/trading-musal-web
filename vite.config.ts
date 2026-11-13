@@ -5,4 +5,6 @@ import { defineConfig } from 'vite'
 export default defineConfig(({ command }) => ({
   plugins: [react()],
   base: command === 'build' ? '/trading-musal-web/' : '/',
+  // 앱 정보 "버전" — 빌드한 날짜(배포할 때마다 바뀐다).
+  define: { __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)) },
 }))

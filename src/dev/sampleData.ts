@@ -53,5 +53,11 @@ export function sampleData(): JournalData {
   buys.push(u)
   // 보유 — 손절가를 내린 종목(리스크 초과)
   buys.push(buy('hold3', 160, '레인보우로보틱스', 8, 180_000, 160_000, { initialStopLossPrice: 171_000 }))
+  // ?pie=many — 파이 지시선 라벨 확인용(예수금이 크고 소액 종목이 많은 모양, iOS 프리뷰와 같다).
+  if (new URLSearchParams(window.location.search).get('pie') === 'many') {
+    for (const [i, [name, price]] of ([['META', 60_000], ['SPC삼립', 60_000], ['DELL', 38_000], ['HYPE', 17_000], ['ETH', 11_000], ['XRP', 4_000]] as const).entries()) {
+      buys.push(buy(`many${i}`, 170 + i, name, 10, price, price * 0.9))
+    }
+  }
   return { buys, sells, cash, journals: [], profile: { nickname: '무명 검객', tradingRules: '', createdAt: start }, settings: DEFAULT_SETTINGS }
 }

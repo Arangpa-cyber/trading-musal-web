@@ -55,7 +55,7 @@ describe('확인표 기간', () => {
   const date = (y: number, m: number, d: number) => local(y, m, d, 12)
   const outcome = (id: string, closed: number, ret: number): TradeOutcome => ({
     id, tradeId: id, assetName: '종목', lotLabel: '1-1', buyDate: closed, closeDate: closed,
-    stepKey: id, order: 0, returnPercent: ret, tradingProfit: ret, stopGap: null,
+    stepKey: id, sellId: id, order: 0, returnPercent: ret, tradingProfit: ret, stopGap: null,
   })
 
   it('1개월 — 거래 없는 달도 줄로 남고 최신이 맨 앞', () => {

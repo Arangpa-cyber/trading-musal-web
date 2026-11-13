@@ -1291,29 +1291,6 @@ select {
   border-radius: 999px;
   overflow: hidden;
 }
-.pie-legend {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 12px;
-}
-.pie-legend-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 4px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  min-width: 0;
-}
-.pie-legend-row.on {
-  background: var(--fill);
-}
-.pie-legend-row i {
-  flex-shrink: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
 .overflow-list {
   display: flex;
   flex-direction: column;
@@ -1321,4 +1298,138 @@ select {
   padding: 10px;
   border-radius: 10px;
   background: var(--fill);
+}
+
+/* 포트폴리오 파이(iOS 지시선 라벨) */
+:root {
+  --card-solid: #fffdf9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-solid: #1e1e20;
+  }
+}
+.pie-box {
+  width: 100%;
+  touch-action: manipulation;
+}
+.pie-box svg {
+  display: block;
+  cursor: pointer;
+}
+.pie-slice {
+  animation: pie-in 0.45s ease-out both;
+  transition: d 0.25s;
+}
+.pie-label {
+  animation: fade-in 0.4s 0.25s ease-out both;
+  pointer-events: none;
+}
+.pie-inside {
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 2px;
+}
+@keyframes pie-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.trade-link {
+  width: 100%;
+  padding: 4px 2px;
+  border-radius: 6px;
+  text-align: left;
+}
+.trade-link:active,
+.trade-link:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chip {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--fill);
+  color: var(--muted);
+}
+.chip.on {
+  background: var(--gold);
+  color: white;
+  font-weight: 700;
+}
+/* 차트를 누를 때 생기는 브라우저 포커스 테두리는 숨긴다(차트는 탭 대상이지 입력 칸이 아니다). */
+.chart :focus,
+.chart :focus-visible {
+  outline: none;
+}
+.alert-body {
+  margin: 0 16px 14px;
+}
+.alert-body input {
+  font: inherit;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--text);
+}
+.alert-actions.vertical {
+  flex-direction: column;
+}
+.alert-actions.vertical button + button {
+  border-left: none;
+  border-top: 1px solid var(--hairline);
+}
+.guide-text {
+  margin: 0;
+  padding: 12px 16px;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+.glossary-row {
+  padding: 10px 16px;
+  border-top: 1px solid var(--hairline);
+}
+.glossary-row:first-of-type {
+  border-top: none;
+}
+.glossary-row p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.rate-input {
+  width: 80px;
+}
+.drag-handle {
+  touch-action: none;
+  cursor: grab;
+  color: var(--muted);
+  padding: 4px 6px;
+}
+.order-row.dragging {
+  background: var(--fill);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 2;
+}
+.inline-button {
+  display: inline;
 }

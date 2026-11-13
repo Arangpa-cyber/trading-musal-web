@@ -93,8 +93,18 @@ export async function replaceJournal(data: JournalData): Promise<void> {
   if (error) throw error
 }
 
-/** 데이터 초기화 — 매수·매도·예수금·메모를 지운다(프로필·설정은 남김). 지우기 진입점은 이것 하나. */
+/** 기록(매수·매도·예수금·메모)만 지운다 — 백업 가져오기가 DB 함수 안에서 같이 쓴다. */
 export async function eraseJournal(): Promise<void> {
   const { error } = await supabase.rpc('erase_journal')
+  if (error) throw error
+}
+
+/**
+ * 데이터 초기화(설정) — 기록과 프로필(별호·원칙)까지 지운다(iOS와 같게). 다음에 열면 별호 정하기부터.
+ * 설정(매매 기본값 등)은 남는다. 지우기 진입점은 이것과 `eraseJournal` 둘뿐이다.
+ */
+export async function eraseAll(): Promise<void> {
+  await eraseJournal()
+  const { error } = await supabase.from('profiles').delete().not('user_id', 'is', null)
   if (error) throw error
 }

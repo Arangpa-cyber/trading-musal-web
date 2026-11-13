@@ -2,19 +2,29 @@
 // 그래프는 "총자산 | 누적손익" 한 번에 하나(두 값을 한 축에 그리면 크기 차이로 납작해져서 예전에 실패한 방식).
 // - 총자산: 총자산 실선 + 순입금액 점선 + 둘 사이 간격 색칠(이익 연빨강/손실 연파랑) + 입금 ▲ · 출금 ▼.
 // - 누적손익: 누적손익 선 + 0 기준 위아래 색칠 + 거래 완결 수익 ▲ / 손실 ▼ + 최고점 ★ + "최고점 대비" 한 줄.
-// 연도 단위 페이지, 계단형 선(이벤트 사이에 허구의 변화를 그리지 않는다). 블라인드면 Y축이 %.
+// 기간 = 3개월·6개월·1년·전체(지금까지) 또는 연도별 페이지(2026-11-13 채택), 계단형 선(이벤트 사이에 허구의 변화를 그리지 않는다). 블라인드면 Y축이 %.
 import { ChevronLeft, ChevronRight, LineChart as LineIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Area, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
 import { fixedDateText, pointAssets, type AssetTimelinePoint } from '../../core'
 import { useJournal } from '../../state/journal'
+import { useSheets } from '../../state/sheets'
 import { Blind, Card, SectionHeader, Text } from '../../ui/components'
 import { Segmented } from '../../ui/form'
 import { percent, signedWon, won, wonCompact } from '../../ui/format'
 import { useBlind, useLocalStorage } from '../../ui/hooks'
 
 type Mode = 'total' | 'pnl'
+/** 기간 — 숫자 = 최근 N개월, 0 = 전체, 'year' = 연도별 페이지 */
+type Range = 3 | 6 | 12 | 0 | 'year'
+const RANGES: { value: Range; label: string }[] = [
+  { value: 3, label: '3개월' },
+  { value: 6, label: '6개월' },
+  { value: 12, label: '1년' },
+  { value: 0, label: '전체' },
+  { value: 'year', label: '연도별' },
+]
 const TOTAL_COLOR = '#3d5470'
 
 interface PagePoint {
@@ -29,6 +39,7 @@ interface PagePoint {
 
 export function TrendCard() {
   const { snapshot } = useJournal()
+  const { openFxRate } = useSheets()
   const [blind] = useBlind()
   const s = snapshot
   const pnl = s.totalAssets - s.netContributions
@@ -38,7 +49,10 @@ export function TrendCard() {
       <SectionHeader title="총자산 추이" icon={LineIcon} />
       <div className="one-line small">
         <span className="muted">현재 총자산: </span>
-        <Blind className="bold" blind={blind} text={won(s.totalAssets)} />
+        {/* 총자산 숫자를 누르면 설정 환율 입력(달러 예수금 미실현 환차 기준). */}
+        <button type="button" className="inline-button" onClick={openFxRate}>
+          <Blind className="bold" blind={blind} text={won(s.totalAssets)} />
+        </button>
         <span className="muted"> / 순입금액: </span>
         <Blind className="bold" blind={blind} text={won(s.netContributions)} />
       </div>
@@ -99,6 +113,7 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   const minYear = new Date(sorted[0].date).getFullYear()
   const maxYear = Math.max(thisYear, new Date(sorted.at(-1)!.date).getFullYear())
   const [year, setYear] = useState(maxYear)
+  const [range, setRange] = useLocalStorage<Range>('assetTrendRange', 'year')
 
   // 블라인드 % 기준 — 총자산 보기 = 첫 기록 총자산(시작점 100%), 누적손익 보기 = 그 시점 순입금액.
   const blindBase = pointAssets(sorted[0]) > 0 ? pointAssets(sorted[0]) : (sorted.map(pointAssets).find((v) => v > 0) ?? 1)
@@ -114,9 +129,15 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   }
 
   // 그해 페이지 — 전년도에서 이어지면 연초부터, 그해 처음 시작하면 첫 이벤트부터(가짜 0원 시작점 없음).
-  const start = new Date(year, 0, 1).getTime()
-  const end = new Date(year + 1, 0, 1).getTime()
-  const right = year >= thisYear ? Math.min(Date.now(), end) : end
+  const today = new Date()
+  const start =
+    range === 'year'
+      ? new Date(year, 0, 1).getTime()
+      : range === 0
+        ? new Date(new Date(sorted[0].date).getFullYear(), new Date(sorted[0].date).getMonth(), 1).getTime()
+        : new Date(today.getFullYear(), today.getMonth() - range, today.getDate()).getTime()
+  const end = range === 'year' ? new Date(year + 1, 0, 1).getTime() : Date.now()
+  const right = range !== 'year' || year >= thisYear ? Math.min(Date.now(), end) : end
   const before = [...sorted].reverse().find((p) => p.date < start)
   const points: PagePoint[] = []
   if (before) points.push({ t: start, balance: pointAssets(before), principal: before.netContributions })
@@ -144,7 +165,16 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   const lo = Math.min(...values)
   const hi = Math.max(...values)
   const pad = Math.max((hi - lo) * 0.15, Math.abs(hi) * 0.02, 1e-6)
-  const months = Array.from({ length: 12 }, (_, m) => new Date(year, m, 1).getTime())
+  // X축 눈금 — 매달 1일, 많으면 2·3·6·12개월 간격으로 솎는다(8개 안팎).
+  const monthStarts: number[] = []
+  for (let d = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + (new Date(start).getDate() > 1 ? 1 : 0), 1); d.getTime() <= end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) monthStarts.push(d.getTime())
+  const every = [1, 2, 3, 6, 12].find((n) => monthStarts.length / n <= 12) ?? 12
+  const months = monthStarts.filter((t) => new Date(t).getMonth() % every === 0 || every === 1)
+  const longSpan = end - start > 400 * 86_400_000
+  const tickText = (t: number) => {
+    const d = new Date(t)
+    return longSpan ? `${String(d.getFullYear()).slice(2)}.${d.getMonth() + 1}` : `${d.getMonth() + 1}월`
+  }
   const yLabel = (v: number) => (blind ? (mode === 'pnl' ? `${v >= 0 ? '+' : ''}${v.toFixed(0)}%` : `${v.toFixed(0)}%`) : wonCompact(v))
 
   // 입금 ▲(빨강)·출금 ▼(파랑) / 거래 완결 수익 ▲·손실 ▼ / 최고점 ★
@@ -191,6 +221,14 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   return (
     <div className="stack-tight">
       <Segmented options={[{ value: 'total', label: '총자산' }, { value: 'pnl', label: '누적손익' }]} value={mode} onChange={setMode} label="그래프 보기" />
+      <div className="chips">
+        {RANGES.map((r) => (
+          <button key={String(r.value)} type="button" className={`chip ${range === r.value ? 'on' : ''}`} aria-pressed={range === r.value} onClick={() => setRange(r.value)}>
+            {r.label}
+          </button>
+        ))}
+      </div>
+      {range === 'year' && (
       <div className="row-between">
         <button type="button" className="icon-button tone-gold" aria-label="이전 해" disabled={year <= minYear} onClick={() => setYear((y) => y - 1)}>
           <ChevronLeft size={20} />
@@ -200,13 +238,14 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
           <ChevronRight size={20} />
         </button>
       </div>
+      )}
       <div className="chart" style={{ height: 240 }}>
         {rows.length === 0 ? (
-          <p className="empty">이 해엔 기록이 없어요</p>
+          <p className="empty">{range === 'year' ? '이 해엔 기록이 없어요' : '이 기간엔 기록이 없어요'}</p>
         ) : (
           <ResponsiveContainer>
             <ComposedChart data={rows} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
-              <XAxis type="number" dataKey="t" domain={[start, end]} ticks={months} tickFormatter={(t) => `${new Date(t).getMonth() + 1}월`} tick={{ fontSize: 10 }} interval={0} scale="time" />
+              <XAxis type="number" dataKey="t" domain={[start, end]} ticks={months} tickFormatter={tickText} tick={{ fontSize: 10 }} interval={0} scale="time" />
               <YAxis domain={[lo - pad, hi + pad]} tickFormatter={yLabel} tick={{ fontSize: 10 }} width={52} tickCount={4} />
               <Tooltip content={tooltip} />
               {mode === 'total' ? (

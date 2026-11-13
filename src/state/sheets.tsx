@@ -14,6 +14,8 @@ export interface SheetActions {
   openAsset: (assetName: string) => void
   openMark: (positionId: string) => void
   openBulkMark: () => void
+  /** 설정 환율 입력(현황 총자산 숫자를 누르면) */
+  openFxRate: () => void
   /** 시트를 다 닫고 거래내역에서 그 기록 카드로 이동(메모 "거래 보기"). */
   showRecord: (recordId: string) => void
 }
