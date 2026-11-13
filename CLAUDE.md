@@ -94,6 +94,8 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   `loadJournal`에서 옛 데이터에 없는 칸을 기본값으로 채운다.
 - 모든 테이블 RLS "own rows"(user_id = auth.uid()). DB 함수 `replace_journal(p)`(백업 가져오기 — 한 트랜잭션으로 통째로 교체,
   profile이 null이면 지금 프로필 유지)·`erase_journal()`(데이터 초기화 — 지우기 진입점 하나), 둘 다 security invoker.
+- 웹 지우기: `eraseJournal`(기록만 — 백업 가져오기 DB 함수가 씀), `eraseAll`(설정 "데이터 초기화" — 기록 + 프로필, iOS와 같게, 설정은 남김).
+  초기화는 "백업하고 초기화 / 바로 초기화(한 번 더 확인)" 중 고른다.
 - 기록 한 건 저장·삭제 = `saveRecords`·`deleteRecords`. 로그인 뒤 전부 불러와(`loadJournal`) `buildSnapshot`으로 계산한다.
 
 ## 저장 모델 — 웹에서 바뀐 것 (설계 결정 1~3, 2026-11-12)
