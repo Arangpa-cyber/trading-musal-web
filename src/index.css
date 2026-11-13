@@ -1441,3 +1441,59 @@ select {
   border-radius: 22px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
+.login-screen {
+  min-height: 100vh;
+  justify-content: flex-start;
+  padding-top: 10vh;
+}
+.login-tagline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 2px;
+}
+.login-tagline b {
+  font-family: 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.login-tagline-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+.login-motto {
+  font-family: 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+  font-size: 15px;
+  line-height: 2;
+  margin: 0;
+}
+.login-motto .loss {
+  color: var(--blue);
+}
+.login-motto .gain {
+  color: var(--red);
+}
+.login-seal-spacer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  width: 100%;
+}
+.login-seal {
+  font-family: 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+  font-weight: 900;
+  font-size: clamp(28px, 8vh, 48px);
+  line-height: 1.05;
+  color: var(--red);
+  border: 4px solid var(--red);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transform: rotate(-5deg);
+}

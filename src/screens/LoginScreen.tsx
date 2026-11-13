@@ -16,10 +16,26 @@ export function LoginScreen() {
   }
 
   return (
-    <main className="center">
+    <main className="center login-screen">
       <img className="app-icon" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={96} height={96} />
       <h1>트레이딩:무살</h1>
-      <p className="muted">무림에서 살아남기 — 손실은 내가 통제하고, 이익은 시장이 준다.</p>
+      <div className="login-tagline">
+        <span className="login-tagline-rule" aria-hidden="true" />
+        <b>무림에서 살아남기</b>
+        <span className="login-tagline-rule" aria-hidden="true" />
+      </div>
+      <p className="login-motto">
+        <span className="loss">손실</span>은 짧게, <span className="gain">수익</span>은 길게
+        <br />
+        <span className="loss">손실</span>은 내가, <span className="gain">수익</span>은 시장이
+      </p>
+      <div className="login-seal-spacer">
+        <div className="login-seal" aria-hidden="true">
+          武
+          <br />
+          殺
+        </div>
+      </div>
       <button className="primary" onClick={start} disabled={busy}>
         {busy ? '구글로 이동 중…' : '구글로 시작하기'}
       </button>
