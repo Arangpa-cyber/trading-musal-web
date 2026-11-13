@@ -9,8 +9,12 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 
 - 1~4단계 완료: 계산 엔진·테스트, 구글 로그인·Supabase 저장, 화면 전부(현황·거래내역·입력·수정·메모·모아보기·차트·설정·가이드).
   배포: https://arangpa-cyber.github.io/trading-musal-web/ (`npm run deploy`).
-- **다음 = 5단계 PWA**: 앱 아이콘(무협 테마)·`manifest.webmanifest`·`apple-touch-icon`·`theme-color`, 홈 화면에 추가했을 때 전체 화면.
-  (오프라인 캐시는 데이터가 서버에 있어 우선순위 낮음 — 하려면 먼저 물어볼 것.)
+- 5단계 PWA 완료(2026-11-13): 아이콘 = **iOS 앱 아이콘 그대로**(빨간 칼·파란 칼 수묵화, `public/icons/` 32·180·192·512 — 원본
+  `XcodeProj/TradingJournal/Assets.xcassets/AppIcon.appiconset/icon-1024.png`에서 `sips`로), `public/manifest.webmanifest`(standalone),
+  `index.html` apple-touch-icon·theme-color. Chrome 설치 가능 검사(CDP `Page.getInstallabilityErrors`) 오류 0.
+  서비스 워커(오프라인 캐시)는 없음 — 데이터가 서버에 있어 우선순위 낮음, 하려면 먼저 물어볼 것.
+- 빌드 확인: `npm run build && npx vite preview`(4173, 배포와 같은 `/trading-musal-web/` 경로 — vite.config `isPreview`).
+- 다음 후보: 사용자가 실제로 쓰면서 나오는 수정 요청.
 - 실제 계정(Supabase)으로 확인 못 한 것: 데이터 초기화(프로필까지 지움 → 별호 화면), 설정 저장. 사용자 확인 필요.
 - 개발 서버: `npm run dev`(5173). 확인: `npm test`, `node scripts/e2e-entry.mjs /tmp`, `e2e-history.mjs`, `e2e-settings.mjs`, `scripts/shot.mjs`.
 - **iOS 화면 디자인을 임의로 바꾸지 않는다** — 바꿔야 하면 코딩 전에 이유와 대안을 묻는다(파이 지시선 라벨을 단순화했다가 되돌림, 2026-11-13).

@@ -1,0 +1,16 @@
+{
+  "name": "트레이딩: 무림에서 살아남기",
+  "short_name": "트레이딩:무살",
+  "description": "손실은 내가 통제하고, 이익은 시장이 준다 — 개인 트레이더 실력 추적 저널",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf6ef",
+  "theme_color": "#faf6ef",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
