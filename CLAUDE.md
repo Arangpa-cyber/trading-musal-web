@@ -19,6 +19,25 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - 개발 서버: `npm run dev`(5173). 확인: `npm test`, `node scripts/e2e-entry.mjs /tmp`, `e2e-history.mjs`, `e2e-settings.mjs`, `scripts/shot.mjs`.
 - **iOS 화면 디자인을 임의로 바꾸지 않는다** — 바꿔야 하면 코딩 전에 이유와 대안을 묻는다(파이 지시선 라벨을 단순화했다가 되돌림, 2026-11-13).
 
+## 새 세션 시작하는 법 (Claude 데스크톱 앱 Code 탭 등)
+
+- 작업 폴더 = `~/Downloads/trading-musal-web`. 이 파일과 README, `git log --oneline | head -20`으로 상황을 파악한다.
+  이전 대화(Xcode 안 Claude Code)는 기억하지 못한다 — 필요한 결정은 모두 이 파일에 있다.
+- iOS 원본(참고만, 수정 금지): `~/Downloads/XcodeProj/TradingJournal`(SwiftUI). 화면·문구를 옮기거나 확인할 때 읽는다.
+- Node는 `/usr/local/bin/node`(셸에서 못 찾으면 `export PATH="/usr/local/bin:$PATH"`). 개발 서버 `npm run dev`(5173)를 켜 두고 확인한다.
+- GitHub push: 토큰이 macOS 키체인에 저장돼 있어 `git push`가 그냥 된다(원격 https://github.com/Arangpa-cyber/trading-musal-web).
+- 자주 쓰는 명령은 `.claude/settings.json`에 허용해 뒀다(npm·확인 스크립트·git).
+
+## 외부 서비스 · 계정 (사용자 구글 계정 kimkkomkkom@gmail.com, GitHub Arangpa-cyber)
+
+- **Supabase** 프로젝트 `vwwrazzwzbaqfvsasvhb`(서울). 주소·publishable 키는 `src/data/supabase.ts`(공개값). DB 구조는 `supabase/schema.sql` —
+  바꾸면 사용자가 Supabase **SQL Editor**에 붙여넣고 Run 해야 한다(Claude는 DB에 직접 못 붙는다 — service_role 키·DB 비밀번호 없음, 받지 않는다).
+  Authentication → URL Configuration: Site URL = 배포 주소, Redirect URLs = 배포 주소 + `http://localhost:5173/`.
+  Sign In / Providers → Google 켜짐(클라이언트 ID·보안 비밀번호는 Supabase에만 있음).
+- **Google Cloud** OAuth 클라이언트(웹, 리디렉션 URI = `https://vwwrazzwzbaqfvsasvhb.supabase.co/auth/v1/callback`). 앱이 "테스트" 상태면
+  등록한 테스트 사용자만 로그인된다 — 다른 사람에게 공개할 땐 Google 인증 플랫폼 → 대상 → **앱 게시**.
+- 공개 서비스로 열 때 남은 일: 개인정보 처리방침 페이지(아직 없음).
+
 ## 진행 방식 (반드시 지킬 것)
 
 - **"코딩해"라고 명시적으로 말하기 전까지는 절대 파일을 수정하지 않는다.** 기능 요청·버그 제보를 받으면 먼저
@@ -26,7 +45,10 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - "코딩해" 뒤에는 중간에 멈추고 미루지 않는다. 막히면 그 자리에서 묻고 계속한다.
 - 새 기능을 만들 때 좋은 개선 아이디어가 있으면 같이 제안한다.
 - 초심자가 알아야 할 새 기능은 가이드(용어사전)에도 반영한다. 사소한 UI 변경은 넣지 않는다.
-- 끝내기 전에 `npm run typecheck`·`npm test`·`npm run build`로 확인한다. 테스트는 고친 범위에 관련된 것 위주.
+- **테스트는 고친 부분에 관련된 것만 돌린다**(사용자 결정, iOS 때부터 — 매번 전체를 돌리지 않는다).
+  화면만 바꿨으면(문구·배치·색·차트 모양) 타입 검사·빌드 + 그 화면 스크린샷만. 계산(`src/core`)을 고쳤으면 그 영역 테스트만
+  (`npx vitest run src/core/__tests__/position.test.ts` 등, `TZ=Asia/Seoul` 필요 → `npm test -- <파일>`). 입력·저장·삭제 흐름을 바꿨을 때만
+  그 흐름의 e2e 스크립트. 무엇을 왜 돌렸는지(안 돌렸는지) 보고에 한 줄로 밝힌다. (`npm run deploy`는 배포 전에 전체 테스트를 자동으로 돌린다 — 1초 미만.)
 - 코드 정리: 떠다니는 코드는 지운다. 중복 로직은 공용으로 모은다. **계산·판정은 `src/core`에만** 둔다(화면에서 계산 금지).
 - 폐기된 아이디어 — 다시 제안하지 않는다: 리마인더 배너(마지막 백업 며칠 전 등), 생체인증 앱 잠금, 홈 화면 위젯,
   예약(지정가) 매수/매도, 목표가·목표 손익비, 실현 R, 감정·규율 태그·장세·메모 분석, CSV, 증권사 PDF 가져오기,
@@ -150,6 +172,8 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - 배당·이자: 현금 증가, 순입금액 미반영. 양도소득세는 다루지 않는다.
 - 용어: 순입금액, 허용손실, 계좌기여율, 손절률, 원칙, 피라미딩("불타기" 안 씀).
 - **색상 규칙: 돈 유입/자산 증가 = 빨강, 유출/감소 = 파랑**(매수 빨강·매도 파랑, 입금·배당 빨강·출금 파랑). 경고 = 주황.
+  매수·매도는 현금 방향이 아니라 **보유자산 증감** 기준이다(현금으로 보면 매수 = 유출이지만 그렇게 해석하지 않는다 — 한국 증시 관례).
+  새 색은 `signColor`(`ui/format.ts`, ≥0 빨강 / <0 파랑), 예수금 종류는 `increasesCash`.
 
 ## 원화·달러 이중통화
 
