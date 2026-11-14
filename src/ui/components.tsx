@@ -65,12 +65,18 @@ export function PlanGrid({ rows }: { rows: Cell[][] }) {
 }
 
 /** 통계 칸(3열 격자 안) — 라벨 위, 굵은 값 아래. */
-export function StatCell({ label, value, tone, sub, subTone, dim }: { label: string; value: string; tone?: Tone; sub?: string; subTone?: Tone; dim?: boolean }) {
+/**
+ * 통계 칸 — 라벨·값 2줄. `arrow` = 값 옆 작은 ▲▼(통산과 눈에 띄게 달라졌을 때만, 나빠졌으면 주황·아니면 회색).
+ * `compact` = 라벨이 길 때 글자를 조금 줄여 칸 높이(2줄)를 지킨다.
+ */
+export function StatCell({ label, value, tone, arrow, compact }: { label: string; value: string; tone?: Tone; arrow?: { up: boolean; worse: boolean }; compact?: boolean }) {
   return (
     <div className="stat-cell">
-      <span className="stat-label">{label}</span>
-      <span className={`stat-value ${toneClass(tone)} ${dim ? 'dim' : ''}`}>{value}</span>
-      {sub && <span className={`stat-sub ${toneClass(subTone ?? 'muted')}`}>{sub}</span>}
+      <span className={`stat-label ${compact ? 'compact' : ''}`}>{label}</span>
+      <span className={`stat-value ${toneClass(tone)}`}>
+        {value}
+        {arrow && <span className={`stat-arrow ${arrow.worse ? 'tone-orange' : 'tone-muted'}`} aria-label={arrow.up ? '평소보다 높음' : '평소보다 낮음'}>{arrow.up ? '▲' : '▼'}</span>}
+      </span>
     </div>
   )
 }

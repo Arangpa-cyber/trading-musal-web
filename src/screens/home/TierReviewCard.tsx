@@ -82,6 +82,10 @@ function PhasePanel({ phase, tier, streak, totalAssets, base, blind }: { phase: 
   )
 }
 
+// 소수 1자리로 보여 줄 때 "같은 숫자인데 미달"이 되지 않게 — "이상" 조건은 내림, "이하" 조건은 올림으로 보여 준다.
+const floor1 = (v: number) => (Math.floor(v * 10 + 1e-9) / 10).toFixed(1)
+const ceil1 = (v: number) => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1)
+
 function conditionValue(c: ConditionStatus, blind: boolean): string {
   const v = c.value
   switch (c.key) {
@@ -89,11 +93,10 @@ function conditionValue(c: ConditionStatus, blind: boolean): string {
       return `${blind ? '•••' : wonCompact(v ?? 0)} / ${wonCompact(c.limit)}`
     case 'adjusted':
     case 'bestTrade':
-      return `${(v ?? 0).toFixed(2)} / ${c.limit.toFixed(2)}`
     case 'ratio':
-      return `1:${(v ?? 0).toFixed(1)} / 1:${c.limit.toFixed(1)}`
+      return `${floor1(v ?? 0)} / ${c.limit.toFixed(1)}`
     case 'avgLoss':
-      return `${(v ?? 0).toFixed(1)}% / ${c.limit}% 이하`
+      return `${ceil1(v ?? 0)}% / ${c.limit}% 이하`
     case 'beyond':
       return `${v ?? 0}회 / ${c.limit}회 이하`
   }

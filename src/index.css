@@ -449,13 +449,13 @@ input.text {
   font-weight: 700;
   white-space: nowrap;
 }
-.stat-value.dim {
-  opacity: 0.5;
+.stat-arrow {
+  margin-left: 3px;
+  font-size: 0.6rem;
+  vertical-align: 1px;
 }
-.stat-sub {
+.stat-label.compact {
   font-size: 0.62rem;
-  line-height: 1.2;
-  white-space: nowrap;
 }
 
 /* 경지 */

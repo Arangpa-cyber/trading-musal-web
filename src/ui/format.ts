@@ -37,9 +37,9 @@ export function percent(v: number, signed = false): string {
 export const percentOrDash = (v: number | null | undefined, signed = true): string =>
   v === null || v === undefined ? '-' : percent(v, signed)
 
-/** 손익비 "1:2.3" */
+/** 손익비·조정 손익비 — 미너비니 방식 소수 1자리("2.3"). */
 export function ratio(v: number): string {
-  return `1:${v.toFixed(1)}`
+  return v.toFixed(1)
 }
 
 /** 부호 있는 원 — "+12,000원" */

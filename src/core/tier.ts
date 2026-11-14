@@ -49,7 +49,7 @@ const REQUIREMENTS: TierRequirements[] = [
   NO_REQUIREMENT, // 범인 — 완료 거래 20건이 게이트
   NO_REQUIREMENT, // 삼류 — 20건을 채우면 바닥
   { minTotalAssets: 30_000_000, minAdjustedRatio: 1.0, minWinLossRatio: 1.5, maxAvgLoss: 10, maxBeyond: null, windows: 1, bestTradeCheck: false }, // 이류: 손익분기 돌파
-  { minTotalAssets: 100_000_000, minAdjustedRatio: 1.33, minWinLossRatio: 2.0, maxAvgLoss: 8, maxBeyond: 2, windows: 2, bestTradeCheck: false }, // 일류: 저자의 최소 목표(2:1)
+  { minTotalAssets: 100_000_000, minAdjustedRatio: 1.3, minWinLossRatio: 2.0, maxAvgLoss: 8, maxBeyond: 2, windows: 2, bestTradeCheck: false }, // 일류: 저자의 최소 목표(2:1)
   { minTotalAssets: 300_000_000, minAdjustedRatio: 1.6, minWinLossRatio: 2.0, maxAvgLoss: 7, maxBeyond: 2, windows: 2, bestTradeCheck: true },
   { minTotalAssets: 1_000_000_000, minAdjustedRatio: 1.9, minWinLossRatio: 2.0, maxAvgLoss: 6, maxBeyond: 1, windows: 3, bestTradeCheck: true }, // 초절정: 미너비니 본인 수준
   { minTotalAssets: 3_000_000_000, minAdjustedRatio: 2.5, minWinLossRatio: 2.0, maxAvgLoss: 5.5, maxBeyond: 1, windows: 3, bestTradeCheck: true }, // 화경: 저자의 "기쁜 수준"의 문턱

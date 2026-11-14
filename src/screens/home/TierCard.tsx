@@ -5,7 +5,7 @@ import { blockAvgLossWarn, blockBeyondWarn, blockHoldWarning, phaseSeverity, sum
 import { useJournal } from '../../state/journal'
 import { Card, Gauge, Pill, SectionHeader, StatCell, Text } from '../../ui/components'
 import { percent, percentOrDash } from '../../ui/format'
-import { adjustedText, adjustedTone, beyondText, days, ratioText } from './Checklist'
+import { adjustedText, adjustedTone, beyondLabel, beyondText, days, ratioText } from './Checklist'
 
 const PHASE_PILL: Record<Exclude<JuhwaipmaPhase['kind'], 'normal'>, string> = { yeokryu: '역류', juhwa: '주화', ipma: '입마', toebo: '퇴보' }
 
@@ -49,12 +49,7 @@ export function TierCard() {
 
         <StatCell label="손익비" value={all.count ? ratioText(all) : '-'} />
         <StatCell label="조정 손익비" value={adjustedText(all)} tone={adjustedTone(all)} />
-        <StatCell
-          label="기준 넘은 손실"
-          value={beyondText(all)}
-          tone={blockBeyondWarn(all) ? 'orange' : 'default'}
-          sub={all.beyondCount === null ? undefined : `−${limit}% 초과`}
-        />
+        <StatCell label={beyondLabel(limit)} value={beyondText(all)} tone={blockBeyondWarn(all) ? 'orange' : 'default'} compact />
 
         <StatCell label="수익 보유 평균" value={days(all.avgWinHoldDays)} />
         <StatCell label="손실 보유 평균" value={days(all.avgLossHoldDays)} tone={blockHoldWarning(all) ? 'orange' : 'default'} />

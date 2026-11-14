@@ -1,13 +1,12 @@
 // 확인표 — 현황 카드(지금 기간 점검) + 상세(기간별 표·YTD·통산 요약). 모두 거래당 %기준.
 // 미너비니가 추적하라고 한 항목을 전부 보여 준다: 승률·평균수익·평균손실·손익비·조정 손익비·최대수익·최대손실·보유일·거래 수
-// + 기준(최대 손절폭)을 넘은 손실·손절가대비. 통산과 눈에 띄게 달라진 칸에만 ▲▼, 표본이 적으면 흐리게, 점검 한 줄.
+// + 기준(최대 손절폭)을 넘은 손실·손절가대비. 칸은 모두 라벨·값 2줄. 통산과 눈에 띄게 달라진 칸엔 값 옆 작은 ▲▼, 점검 한 줄.
 import { ChevronRight, Table } from 'lucide-react'
 import {
   blockAdjustedRatio,
   blockAvgLossWarn,
   blockBeyondWarn,
   blockHoldWarning,
-  blockSmallSample,
   blockStubbornWarn,
   blockWinLossRatio,
   cardPeriod,
@@ -37,15 +36,17 @@ const periodText = (b: ChecklistBlock) =>
   b.label ?? (b.periodStart !== null && b.periodEnd !== null ? `${shortDate(b.periodStart)}-${shortDate(b.periodEnd)}` : '-')
 export const stopGapTone = (v: number | null): Tone => (v === null ? 'default' : stopGapWarns(v) ? 'orange' : v >= 0 ? 'red' : 'blue')
 export const ratioText = (b: ChecklistBlock) => (blockWinLossRatio(b) === null ? '-' : ratio(blockWinLossRatio(b)!))
-export const adjustedText = (b: ChecklistBlock) => blockAdjustedRatio(b)?.toFixed(2) ?? '-'
+export const adjustedText = (b: ChecklistBlock) => {
+  const v = blockAdjustedRatio(b)
+  return v === null ? '-' : ratio(v)
+}
 export const adjustedTone = (b: ChecklistBlock): Tone => ((blockAdjustedRatio(b) ?? 0) > 1 ? 'red' : 'default')
 export const beyondText = (b: ChecklistBlock) => (b.beyondCount === null ? '-' : `${b.beyondCount}회`)
+/** 칸 이름 — 기준(설정의 최대 손절폭)을 이름에 넣는다. 기준이 꺼져 있으면 숫자 없이. */
+export const beyondLabel = (limit: number) => (limit > 0 ? `기준(-${limit}%) 넘은 손실` : '기준 넘은 손실')
 
-/** 통산 대비 ▲▼ 보조 줄 — 눈에 띄게 달라진 칸에만(없으면 undefined). 나빠졌으면 주황. */
-function devSub(d: Deviation | undefined, unit: string, digits = 1): { sub?: string; subTone?: Tone } {
-  if (!d) return {}
-  return { sub: `${d.delta > 0 ? '▲' : '▼'} 평소 ${d.delta > 0 ? '+' : ''}${d.delta.toFixed(digits)}${unit}`, subTone: d.worse ? 'orange' : 'muted' }
-}
+/** 값 옆 ▲▼ — 통산 대비 눈에 띄게 달라진 칸에만(없으면 undefined). 나빠졌으면 주황, 아니면 회색. */
+const arrowOf = (d: Deviation | undefined) => (d ? { up: d.delta > 0, worse: d.worse } : undefined)
 
 export function ChecklistCard({ onOpen }: { onOpen: () => void }) {
   const { data, snapshot } = useJournal()
@@ -55,7 +56,6 @@ export function ChecklistCard({ onOpen }: { onOpen: () => void }) {
   const b = shown?.block
   const overall = summarize(snapshot.outcomes, null, limit)
   const dev = b ? deviations(b, overall) : {}
-  const small = b ? blockSmallSample(b) : false
   const stubborn = b ? blockStubbornWarn(b) : false
   const note = b ? checkupMessage(b, overall, limit) : null
   return (
@@ -68,26 +68,21 @@ export function ChecklistCard({ onOpen }: { onOpen: () => void }) {
             {shown?.isCurrent ? ' (진행 중)' : ''}
           </Text>
           <div className="stat-grid">
-            <StatCell label="승률" value={percent(b.winRate)} dim={small} {...devSub(dev.winRate, '%p', 0)} />
-            <StatCell label="평균수익률" value={percentOrDash(b.avgWin)} tone="red" {...devSub(dev.avgWin, '%p')} />
-            <StatCell label="평균손실률" value={percentOrDash(b.avgLoss)} tone={blockAvgLossWarn(b) ? 'orange' : 'blue'} {...devSub(dev.avgLoss, '%p')} />
+            <StatCell label="승률" value={percent(b.winRate)} arrow={arrowOf(dev.winRate)} />
+            <StatCell label="평균수익률" value={percentOrDash(b.avgWin)} tone="red" arrow={arrowOf(dev.avgWin)} />
+            <StatCell label="평균손실률" value={percentOrDash(b.avgLoss)} tone={blockAvgLossWarn(b) ? 'orange' : 'blue'} arrow={arrowOf(dev.avgLoss)} />
 
             <StatCell label="손절가대비" value={percentOrDash(b.avgLossStopGap)} tone={stopGapTone(b.avgLossStopGap)} />
             <StatCell label="최대 수익" value={percentOrDash(b.maxWin)} tone={stubborn ? 'orange' : 'red'} />
             <StatCell label="최대 손실" value={percentOrDash(b.maxLoss)} tone={stubborn || blockBeyondWarn(b) ? 'orange' : 'blue'} />
 
-            <StatCell label="손익비" value={ratioText(b)} dim={small} />
-            <StatCell label="조정 손익비" value={adjustedText(b)} tone={adjustedTone(b)} dim={small} {...devSub(dev.adjusted, '', 2)} />
-            <StatCell
-              label="기준 넘은 손실"
-              value={beyondText(b)}
-              tone={blockBeyondWarn(b) ? 'orange' : 'default'}
-              sub={b.beyondCount === null ? undefined : `−${data.settings.maxStopLossPercent}% 초과`}
-            />
+            <StatCell label="손익비" value={ratioText(b)} />
+            <StatCell label="조정 손익비" value={adjustedText(b)} tone={adjustedTone(b)} arrow={arrowOf(dev.adjusted)} />
+            <StatCell label={beyondLabel(limit)} value={beyondText(b)} tone={blockBeyondWarn(b) ? 'orange' : 'default'} compact />
 
             <StatCell label="수익 보유" value={days(b.avgWinHoldDays)} />
             <StatCell label="손실 보유" value={days(b.avgLossHoldDays)} tone={blockHoldWarning(b) ? 'orange' : 'default'} />
-            <StatCell label="거래" value={`${b.count}건`} sub={small ? '표본 적음' : undefined} subTone="orange" />
+            <StatCell label="거래" value={`${b.count}건`} />
           </div>
           {note && (
             <Text tone="orange" size="small">
@@ -145,7 +140,7 @@ export function ChecklistDetail() {
                   <th>조정 손익비</th>
                   <th>최대수익</th>
                   <th>최대손실</th>
-                  <th>기준 넘은 손실</th>
+                  <th>{beyondLabel(limit)}</th>
                   <th>수익보유일</th>
                   <th>손실보유일</th>
                   <th>손절가대비</th>
@@ -170,7 +165,7 @@ export function ChecklistDetail() {
             <SummaryRow label="조정 손익비" value={adjustedText(overall)} tone={adjustedTone(overall)} />
             <SummaryRow label="최대 수익" value={percentOrDash(overall.maxWin)} tone="red" />
             <SummaryRow label="최대 손실" value={percentOrDash(overall.maxLoss)} tone="blue" />
-            <SummaryRow label={`기준(−${limit}%) 넘은 손실`} value={beyondText(overall)} tone={blockBeyondWarn(overall) ? 'orange' : 'default'} />
+            <SummaryRow label={beyondLabel(limit)} value={beyondText(overall)} tone={blockBeyondWarn(overall) ? 'orange' : 'default'} />
             <SummaryRow label="평균 보유일 (수익 / 손실)" value={`${days(overall.avgWinHoldDays)} / ${days(overall.avgLossHoldDays)}`} tone={blockHoldWarning(overall) ? 'orange' : 'default'} />
             <SummaryRow label="평균 손절가대비(손실 거래)" value={percentOrDash(overall.avgLossStopGap)} tone={stopGapTone(overall.avgLossStopGap)} />
             {adjusted !== null && (
@@ -191,7 +186,7 @@ function BlockRow({ b, total }: { b: ChecklistBlock; total?: boolean }) {
     <tr className={total ? 'total' : ''}>
       <td className={`left ${total ? '' : 'tone-muted'}`}>{periodText(b)}</td>
       <td className={has ? '' : 'tone-muted'}>{has ? b.count : '거래 없음'}</td>
-      <td className={blockSmallSample(b) ? 'tone-muted' : ''}>{has ? percent(b.winRate) : '-'}</td>
+      <td>{has ? percent(b.winRate) : '-'}</td>
       <td className="tone-red">{percentOrDash(b.avgWin)}</td>
       <td className={blockAvgLossWarn(b) ? 'tone-orange' : 'tone-blue'}>{percentOrDash(b.avgLoss)}</td>
       <td>{has ? ratioText(b) : '-'}</td>

@@ -73,12 +73,12 @@ export function tierRequirementsText(): string {
     if (req.minTotalAssets !== null && req.minAdjustedRatio !== null && req.minWinLossRatio !== null && req.maxAvgLoss !== null) {
       lines.push(
         `   - 총자산: ${koreanAmount(req.minTotalAssets)} 이상`,
-        `   - 조정 손익비: ${req.minAdjustedRatio} 이상`,
+        `   - 조정 손익비: ${req.minAdjustedRatio.toFixed(1)} 이상`,
         `   - 손익비: ${req.minWinLossRatio.toFixed(1)} 이상`,
         `   - 평균 손실: ${req.maxAvgLoss}% 이하`,
       )
       if (req.maxBeyond !== null) lines.push(`   - 기준 넘은 손실: 20건 중 ${req.maxBeyond}회 이하`)
-      if (req.bestTradeCheck) lines.push(`   - 가장 큰 수익 1건을 빼도 조정 손익비 ${tierRequirements(tier - 1).minAdjustedRatio} 이상`)
+      if (req.bestTradeCheck) lines.push(`   - 가장 큰 수익 1건을 빼도 조정 손익비 ${tierRequirements(tier - 1).minAdjustedRatio?.toFixed(1)} 이상`)
       lines.push(`   - 증거: 겹치지 않는 ${WINDOW_SIZE}건 구간 ${req.windows}개 연속 통과 (${req.windows * WINDOW_SIZE}건)`)
     } else if (tier === 0) {
       lines.push(`   - 완료 거래 ${WINDOW_SIZE}건에 도달하면 삼류로 평가 시작`)
@@ -122,8 +122,8 @@ const SECTIONS: [string, string][] = [
   [
     '3. 경지(등급)는 어떻게 매겨지나',
     `경지는 완료거래수를 세는 게 아니라, 내 매매의 '기대값'과 '손실 통제'로 매겨져요. 여기서 1건은 매수 카드(1-1·1-2…) 하나가 팔린 것이에요 — 피라미딩한 추가 매수도 각각 1건이고, 수익률은 그 매수를 산 가격 기준이에요(진행은 매도 1회당 한 번).
-· 조정 손익비: 승률과 손익비를 한 숫자로 합친 기대값이에요. 1을 넘으면 장기적으로 돈을 버는 습관이에요. 승률은 따로 보지 않아요 — 승률이 낮아도 손익비가 높으면 높게 나오는데, 손절을 짧게 지키는 전략은 원래 승률이 그렇게 높지 않은 게 정상이거든요.
-· 손익비: 평균 이익이 평균 손실의 몇 배인지(1:X). 미너비니의 최소 목표는 2:1이에요.
+· 조정 손익비: 승률과 손익비를 한 숫자로 합친 기대값이에요(손익비와 같은 소수 1자리). 1을 넘으면 장기적으로 돈을 버는 습관이에요. 승률은 따로 보지 않아요 — 승률이 낮아도 손익비가 높으면 높게 나오는데, 손절을 짧게 지키는 전략은 원래 승률이 그렇게 높지 않은 게 정상이거든요.
+· 손익비: 평균 이익이 평균 손실의 몇 배인지(소수 1자리, 예: 2.0 = 평균 이익이 평균 손실의 2배). 미너비니의 최소 목표는 2.0(2:1)이에요.
 · 평균 손실·기준 넘은 손실: 작게 잃는지를 봐요. 평균 손실은 5~7% 이하, 설정의 최대 손절폭(기본 10%)을 넘은 손실은 높은 경지일수록 거의 없어야 해요.
 · 증거: 최근 20건씩 끊은 구간(겹치지 않게)이 연속으로 몇 개 통과해야 해요. 한 철 운 좋게 잘한 걸 걸러내는 장치예요. 절정부터는 가장 큰 수익 1건을 빼도 한 단계 아래 경지 기준을 넘어야 해요.
 · 총자산: 경지마다 최소 기준이 있고, 모자라면 즉시 한 단계씩 내려가요. 출금으로 줄어들어도 그대로 반영돼요(출금 입력 화면에서 미리 알려줘요).

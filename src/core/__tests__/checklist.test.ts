@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   AVG_LOSS_WARN_PERCENT,
-  SAMPLE_MIN,
   blockAvgLossWarn,
-  blockSmallSample,
   blockStubbornWarn,
   checkupMessage,
   deviations,
@@ -31,16 +29,11 @@ function mk(i: number, ret: number, buyDay = i, closeDay = i + (ret > 0 ? 20 : 1
 }
 const list = (rets: number[]) => rets.map((r, i) => mk(i, r))
 
-describe('확인표 — 기준 넘은 손실·표본·경고', () => {
+describe('확인표 — 기준 넘은 손실·경고', () => {
   it('기준(최대 손절폭)을 넘은 손실 횟수 — 기준이 꺼져 있으면 null', () => {
     const rets = [10, -3, -12, -11, 5, -10]
     expect(summarize(list(rets), null, 10).beyondCount).toBe(2) // −10%는 "넘은" 게 아니다
     expect(summarize(list(rets)).beyondCount).toBeNull()
-  })
-  it('표본 적음 — 거래가 있고 10건 미만', () => {
-    expect(blockSmallSample(summarize(list([1, 2, 3])))).toBe(true)
-    expect(blockSmallSample(summarize([]))).toBe(false)
-    expect(blockSmallSample(summarize(list(Array(SAMPLE_MIN).fill(1))))).toBe(false)
   })
   it('평균 손실이 7%를 넘으면 주의', () => {
     expect(blockAvgLossWarn(summarize(list([10, -7])))).toBe(false)

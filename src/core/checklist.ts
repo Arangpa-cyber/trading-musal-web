@@ -146,15 +146,12 @@ export function winHoldDaysBaseline(outcomes: TradeOutcome[]): number | null {
   return avg(wins.map(outcomeHoldDays))
 }
 
-// MARK: 확인표 보강 — 표본·경고·통산 대비·점검 한 줄 (미너비니 "Know the Truth About Your Trading")
+// MARK: 확인표 보강 — 경고·통산 대비·점검 한 줄 (미너비니 "Know the Truth About Your Trading")
 
-/** 표본이 이보다 적으면 "표본 적음" — 한 달 결과에 휘둘리지 말고 6~12개월 평균을 보라는 취지. */
+/** 통산 대비 ▲▼·고집쟁이 경고는 거래가 이보다 적으면 하지 않는다(한 달 결과에 휘둘리지 말고 6~12개월 평균을 보라는 취지). */
 export const SAMPLE_MIN = 10
 /** 평균 손실 주의선(%) — 미너비니 권장 평균 손실 5~7%의 위쪽. */
 export const AVG_LOSS_WARN_PERCENT = 7
-
-/** 거래가 있지만 표본이 적은 블록. */
-export const blockSmallSample = (b: ChecklistBlock): boolean => b.count > 0 && b.count < SAMPLE_MIN
 
 /** 평균 손실(%)이 주의선보다 크다. */
 export const blockAvgLossWarn = (b: ChecklistBlock): boolean => b.avgLoss !== null && -b.avgLoss > AVG_LOSS_WARN_PERCENT
