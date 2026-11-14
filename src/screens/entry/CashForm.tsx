@@ -1,7 +1,7 @@
 // 예수금 입력 — 종류 세그먼트 → 금액·메모 → 예수금 변화 박스(환전이면 미리보기 줄) → 저장.
 import { Wallet, ArrowLeftRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { isSameDay, UsdBook, type CashTx, type CashTxType, type Currency, type ExchangeDirection } from '../../core'
+import { assetCeiling, isSameDay, SAMRYU, tierName, tierRequirements, UsdBook, type CashTx, type CashTxType, type Currency, type ExchangeDirection } from '../../core'
 import { useJournal } from '../../state/journal'
 import {
   CashChangeBox,
@@ -19,7 +19,7 @@ import {
   Segmented,
   TextField,
 } from '../../ui/form'
-import { rate, signedWon, type Tone } from '../../ui/format'
+import { rate, signedWon, wonCompact, type Tone } from '../../ui/format'
 import { useBlind } from '../../ui/hooks'
 import { useDraft } from './draft'
 import type { EntryFormProps } from './EntrySheet'
@@ -47,6 +47,12 @@ export function CashForm({ date, initialType, onDirty, save, busy }: EntryFormPr
   const isUsdDividend = type === 'dividend' && currency === 'USD'
   const reasons = cashBlockReasons(type, amount, usdText, direction)
   const delta = reasons.length ? { krw: 0, usd: 0 } : draftCashDelta(type, amount, usdText, direction, type === 'dividend' ? currency : 'KRW')
+
+  // 출금하면 총자산이 줄어 경지 최소 밑이 될 수 있다 — 규칙은 그대로(출금도 반영)이고, 저장 전에 알려 준다.
+  const tierNow = snapshot.grading.currentTier
+  const afterAssets = snapshot.totalAssets - (type === 'withdrawal' ? (positive(amount) ?? 0) : 0)
+  const fallsTo = type === 'withdrawal' && tierNow > SAMRYU && positive(amount) !== null ? assetCeiling(afterAssets) : null
+  const tierDrop = fallsTo !== null && fallsTo < tierNow ? { to: fallsTo, min: tierRequirements(tierNow).minTotalAssets ?? 0 } : null
 
   // 환전 미리보기 — 달러 → 원화: 확정될 환차손익, 원화 → 달러: 평균 매입 환율 변화(지금 잔액 기준).
   const preview: { items: [string, string][]; tones: Record<string, Tone> } = { items: [], tones: {} }
@@ -132,6 +138,11 @@ export function CashForm({ date, initialType, onDirty, save, busy }: EntryFormPr
             extraTones={preview.tones}
             blind={blind}
           />
+          {tierDrop && (
+            <p className="form-note tone-orange">
+              출금하면 총자산이 {blind ? '•••' : wonCompact(afterAssets)}이 돼 {tierName(tierNow)} 경지 최소({wonCompact(tierDrop.min)}) 아래예요. 저장하면 {tierName(tierDrop.to)}(으)로 내려가요.
+            </p>
+          )}
           {type === 'exchange' && krw !== null && usd !== null && (
             <>
               {direction === 'usdToKrw' &&

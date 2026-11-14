@@ -449,6 +449,14 @@ input.text {
   font-weight: 700;
   white-space: nowrap;
 }
+.stat-value.dim {
+  opacity: 0.5;
+}
+.stat-sub {
+  font-size: 0.62rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
 
 /* 경지 */
 .tier-title {
@@ -479,6 +487,73 @@ input.text {
 }
 .gauge-fill.done {
   background: var(--green);
+}
+.gauge-fill.warn {
+  background: var(--orange);
+}
+.review-windows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.review-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--fill);
+  color: var(--muted);
+}
+.review-dot.pass {
+  background: color-mix(in srgb, var(--green) 22%, transparent);
+  color: var(--green);
+}
+.review-dot.fail {
+  background: color-mix(in srgb, var(--orange) 22%, transparent);
+  color: var(--orange);
+}
+.review-met summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.review-met ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+}
+.juhwa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--orange) 8%, transparent);
+  border: 1px solid transparent;
+}
+.juhwa-panel.sev2 {
+  background: color-mix(in srgb, var(--orange) 13%, transparent);
+}
+.juhwa-panel.sev3,
+.juhwa-panel.sev4 {
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+  border-color: var(--orange);
+}
+.juhwa-panel.sev4 {
+  border-width: 2px;
+}
+.recover-dots {
+  letter-spacing: 3px;
+  color: var(--orange);
 }
 .tier-strip {
   display: flex;

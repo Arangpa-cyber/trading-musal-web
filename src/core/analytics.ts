@@ -3,7 +3,7 @@ import { cashBalances, replayFx, resolveFxRate, resolveRates, type CashBalances,
 import { TradePosition, type TradeOutcome } from './position'
 import { buyAmountKRW, buyCashOutflow, buyFeeKRW, cashDelta, sellAmountKRW, sellCashInflow, sellFeeKRW, type RatedBuy, type RatedSell } from './records'
 import { evaluate, type TierGradingResult } from './tier'
-import type { CashTx, CashTxType, JournalData, Millis } from './types'
+import { DEFAULT_SETTINGS, type CashTx, type CashTxType, type JournalData, type Millis, type Settings } from './types'
 
 // MARK: 예수금·순입금액
 
@@ -153,9 +153,16 @@ export function assetsAt(date: Millis, timeline: AssetTimelinePoint[]): number {
   return 0
 }
 
-/** 경지 판정 — 완료 거래를 각 매도 시점의 총자산 스냅샷(타임라인)으로만 재생한다. */
-export function grading(outcomes: TradeOutcome[], timeline: AssetTimelinePoint[]): TierGradingResult {
-  return evaluate(outcomes, (o) => assetsAt(o.closeDate, timeline))
+/**
+ * 경지 판정 — 완료 거래를 각 매도 시점의 총자산 스냅샷(타임라인)으로만 재생한다. 입출금(출금 포함)으로 총자산이
+ * 경지 최소 밑이 되면 그 순간 강등. `limitPercent` = 설정의 최대 손절폭(기준 넘은 손실 판정).
+ */
+export function grading(outcomes: TradeOutcome[], timeline: AssetTimelinePoint[], limitPercent = DEFAULT_SETTINGS.maxStopLossPercent): TierGradingResult {
+  return evaluate(
+    outcomes,
+    timeline.map((p) => ({ date: p.date, assets: pointAssets(p) })),
+    limitPercent,
+  )
 }
 
 /**
@@ -216,6 +223,7 @@ export function makeSnapshot(
   sells: RatedSell[],
   cashTxs: CashTx[],
   fxRate: ResolvedFxRate | null = null,
+  settings: Pick<Settings, 'maxStopLossPercent'> = DEFAULT_SETTINGS,
 ): PortfolioSnapshot {
   const positions = TradePosition.aggregate(buys, sells)
   const open = positions.filter((p) => !p.isClosed)
@@ -237,7 +245,7 @@ export function makeSnapshot(
     cumulativeFees: cumulativeFees(cashTxs, buys, sells),
     timeline: points,
     assetsAround: around,
-    grading: grading(outcomes, points),
+    grading: grading(outcomes, points, settings.maxStopLossPercent),
   }
 }
 
@@ -245,7 +253,7 @@ export function makeSnapshot(
 export function buildSnapshot(data: Pick<JournalData, 'buys' | 'sells' | 'cash' | 'settings'>): PortfolioSnapshot {
   const { buys, sells } = resolveRates(data.buys, data.sells, data.cash)
   const fx = resolveFxRate(data.cash, data.settings.manualFxRate, data.settings.manualFxRateDate)
-  return makeSnapshot(buys, sells, data.cash, fx)
+  return makeSnapshot(buys, sells, data.cash, fx, data.settings)
 }
 
 // MARK: 카드 비중

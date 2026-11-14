@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import {
   BUY_REASON_LABEL,
   feeFor,
+  LOSING_STREAK_NOTICE,
   lockedRiskPercent,
   UsdBook,
   type Buy,
@@ -107,7 +108,7 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const fxRate = isForeign ? (bookRate ?? 0) : 1
 
   // 리스크
-  const lock = lockedRiskPercent(snapshot.grading.juhwaipma)
+  const lock = lockedRiskPercent(snapshot.grading.juhwaipma, settings.defaultRiskPercent)
   const entered = parseNum(riskPercent) ?? 0
   const effRisk = lock !== null ? Math.min(entered, lock) : entered
   const name = assetName.trim()
@@ -289,9 +290,17 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
               <NumberField label="리스크율" value={riskPercent} onChange={setRiskPercent} placeholder="리스크율" unit="%" decimal />
             </FieldRow>
             {lock !== null ? (
-              <FormRow className="form-note tone-red">주화입마 상태예요. 리스크율이 최대 {lock}%로 제한됩니다 — 초과 입력해도 이 값으로 계산·저장돼요.</FormRow>
+              <FormRow className="form-note tone-orange">
+                주화입마 상태예요. 리스크율이 평소 {settings.defaultRiskPercent}% → 최대 {lock}%로 제한돼 허용손실이{' '}
+                {blind ? '•••' : `${wonCompact((snapshot.totalAssets * settings.defaultRiskPercent) / 100)} → ${wonCompact((snapshot.totalAssets * lock) / 100)}`}이 돼요 — 초과 입력해도 이 값으로 계산·저장돼요.
+              </FormRow>
             ) : (
-              effRisk > RISK_WARNING_PERCENT && <FormRow className="form-note tone-orange">리스크율이 {RISK_WARNING_PERCENT}%를 넘어요. 한 번 손절에 계좌가 크게 줄 수 있어요.</FormRow>
+              <>
+                {snapshot.grading.losingStreak >= LOSING_STREAK_NOTICE && (
+                  <FormRow className="form-note tone-orange">최근 {snapshot.grading.losingStreak}연패예요. 크기를 줄여 보세요.</FormRow>
+                )}
+                {effRisk > RISK_WARNING_PERCENT && <FormRow className="form-note tone-orange">리스크율이 {RISK_WARNING_PERCENT}%를 넘어요. 한 번 손절에 계좌가 크게 줄 수 있어요.</FormRow>}
+              </>
             )}
           </>
         ) : open.length === 0 ? (

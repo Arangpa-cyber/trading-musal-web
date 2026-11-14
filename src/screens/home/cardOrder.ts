@@ -1,9 +1,10 @@
-// 현황 카드 순서 — 프로필 헤더·경지는 고정, 나머지 카드는 설정 "현황 카드 순서 바꾸기"에서 바꾼다(설정·백업에 저장).
+// 현황 카드 순서 — 프로필 헤더·경지는 고정, 나머지 카드(승급 심사 포함)는 설정 "현황 카드 순서 바꾸기"에서 바꾼다(설정·백업에 저장).
 // 키는 iOS 백업의 homeCardOrder와 같다(가져오면 순서가 그대로).
-export const HOME_CARDS = ['holdings', 'portfolio', 'returnDistribution', 'trend', 'checklist'] as const
+export const HOME_CARDS = ['tierReview', 'holdings', 'portfolio', 'returnDistribution', 'trend', 'checklist'] as const
 export type HomeCard = (typeof HOME_CARDS)[number]
 
 export const HOME_CARD_TITLE: Record<HomeCard, string> = {
+  tierReview: '승급 심사',
   holdings: '보유 자산',
   portfolio: '포트폴리오 구성',
   returnDistribution: '수익 분포',

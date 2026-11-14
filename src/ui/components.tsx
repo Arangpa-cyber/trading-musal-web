@@ -65,11 +65,12 @@ export function PlanGrid({ rows }: { rows: Cell[][] }) {
 }
 
 /** 통계 칸(3열 격자 안) — 라벨 위, 굵은 값 아래. */
-export function StatCell({ label, value, tone }: { label: string; value: string; tone?: Tone }) {
+export function StatCell({ label, value, tone, sub, subTone, dim }: { label: string; value: string; tone?: Tone; sub?: string; subTone?: Tone; dim?: boolean }) {
   return (
     <div className="stat-cell">
       <span className="stat-label">{label}</span>
-      <span className={`stat-value ${toneClass(tone)}`}>{value}</span>
+      <span className={`stat-value ${toneClass(tone)} ${dim ? 'dim' : ''}`}>{value}</span>
+      {sub && <span className={`stat-sub ${toneClass(subTone ?? 'muted')}`}>{sub}</span>}
     </div>
   )
 }
@@ -85,7 +86,7 @@ export function InkDivider() {
   )
 }
 
-export function Gauge({ label, progress, valueText }: { label: string; progress: number; valueText: string }) {
+export function Gauge({ label, progress, valueText, warn }: { label: string; progress: number; valueText: string; warn?: boolean }) {
   const p = Math.min(Math.max(progress, 0), 1)
   return (
     <div className="gauge">
@@ -94,7 +95,7 @@ export function Gauge({ label, progress, valueText }: { label: string; progress:
         <span className="muted small">{valueText}</span>
       </div>
       <div className="gauge-track">
-        <div className={`gauge-fill ${p >= 1 ? 'done' : ''}`} style={{ width: `${p * 100}%` }} />
+        <div className={`gauge-fill ${p >= 1 ? 'done' : warn ? 'warn' : ''}`} style={{ width: `${p * 100}%` }} />
       </div>
     </div>
   )

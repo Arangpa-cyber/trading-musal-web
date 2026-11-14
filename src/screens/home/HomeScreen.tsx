@@ -13,6 +13,7 @@ import { HoldingsCard } from './HoldingsCard'
 import { PortfolioCard } from './PortfolioCard'
 import { ReturnDistributionCard } from './ReturnDistributionCard'
 import { TierCard } from './TierCard'
+import { TierReviewCard } from './TierReviewCard'
 import { TrendCard } from './TrendCard'
 
 export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void }) {
@@ -47,7 +48,9 @@ export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void })
       )}
 
       {cardOrder(data.settings.homeCardOrder).map((card) =>
-        card === 'holdings' ? (
+        card === 'tierReview' ? (
+          <TierReviewCard key={card} />
+        ) : card === 'holdings' ? (
           <HoldingsCard key={card} />
         ) : card === 'portfolio' ? (
           <PortfolioCard key={card} />
@@ -70,7 +73,7 @@ export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void })
  * 더 나빠진 순간 한 번. 반복 배너가 아니라 그 순간의 사건 알림(기기별로 마지막 본 상태를 기억).
  */
 function useTierNotice() {
-  const { snapshot } = useJournal()
+  const { data, snapshot } = useJournal()
   const result = snapshot.grading
   const [lastTier, setLastTier] = useLocalStorage('lastSeenTier', BEOMIN)
   const [lastSeverity, setLastSeverity] = useLocalStorage('lastSeenJuhwaipmaSeverity', 0)
@@ -80,25 +83,26 @@ function useTierNotice() {
 
   useEffect(() => {
     if (tier > lastTier) {
-      setAlert({ title: `${tierName(tier)} 경지에 올랐어요!`, message: '최근 20건의 승률·손익비와 총자산이 다음 경지 기준을 3번 연속 넘었어요.' })
+      setAlert({ title: `${tierName(tier)} 경지에 올랐어요!`, message: '총자산과 최근 성과(조정 손익비·손익비·손실 통제)가 다음 경지 기준을 겹치지 않는 20건 구간마다 넘었어요.' })
     } else if (tier < lastTier && tier > BEOMIN) {
       setAlert({
         title: `${tierName(tier)}(으)로 강등됐어요`,
         message:
           severity === 4
             ? '최근 20건 기대손익이 오래 마이너스라 경지가 한 단계 내려갔어요. 운기조식(5회 연속 플러스)으로 회복하세요.'
-            : '총자산이 이전 경지 기준 아래로 내려갔어요.',
+            : '총자산이 이전 경지 최소 아래로 내려갔거나(출금 포함), 최근 성과가 이전 경지 유지 기준에 2구간 연속 못 미쳤어요.',
       })
     } else if (severity > lastSeverity && severity >= 2) {
-      const lock = lockedRiskPercent(result.juhwaipma)
+      const base = data.settings.defaultRiskPercent
+      const lock = lockedRiskPercent(result.juhwaipma, base)
       setAlert({
         title: phaseStatusText(result.juhwaipma),
-        message: `최근 20건 기대손익이 계속 마이너스예요. 리스크율이 최대 ${lock ?? '-'}%로 제한돼요 — 운기조식(5회 연속 플러스)으로 풀려요.`,
+        message: `최근 20건·10건 기대손익이 계속 마이너스예요. 평소 리스크율 ${base}%가 최대 ${lock ?? '-'}%로 제한돼요 — 운기조식(5회 연속 플러스)으로 풀려요.`,
       })
     }
     if (tier !== lastTier) setLastTier(tier)
     if (severity !== lastSeverity) setLastSeverity(severity)
-  }, [tier, severity, lastTier, lastSeverity, result.juhwaipma, setLastTier, setLastSeverity])
+  }, [tier, severity, lastTier, lastSeverity, result.juhwaipma, data.settings.defaultRiskPercent, setLastTier, setLastSeverity])
 
   return { alert, dismiss: () => setAlert(null) }
 }
