@@ -24,22 +24,9 @@ export function netContributions(cash: CashTx[]): number {
   return total
 }
 
-export function firstDepositDate(cash: CashTx[]): Millis | null {
-  const dates = cash.filter((t) => t.type === 'deposit').map((t) => t.date)
-  return dates.length ? Math.min(...dates) : null
-}
-
 /** 누적수익률(%) = (총자산 − 순입금액) ÷ 순입금액. */
 export function cumulativeReturnPercent(totalAssets: number, net: number): number | null {
   return net > 0 ? ((totalAssets - net) / net) * 100 : null
-}
-
-/** 연환산수익률(CAGR, %). */
-export function annualizedReturnPercent(cumulative: number, elapsedDays: number): number | null {
-  if (elapsedDays <= 0) return null
-  const growth = 1 + cumulative / 100
-  if (growth <= 0) return null
-  return (Math.pow(growth, 1 / (elapsedDays / 365)) - 1) * 100
 }
 
 // MARK: 자산 추이

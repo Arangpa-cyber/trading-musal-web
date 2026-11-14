@@ -16,7 +16,7 @@ import { percent, price, relativeDay, signColor, wonCompact } from './format'
 
 /**
  * 리스크 줄 — 손절가 | 손절률 | 리스크율(확보수익률) | 허용손실(확보이익).
- * 손절가가 평단 이상이면 손절돼도 잃지 않으므로 "확보"로 이름·색(빨강)을 바꾼다.
+ * 손절가가 매수가 이상이면 손절돼도 잃지 않으므로 "확보"로 이름·색(빨강)을 바꾼다(옛 기록·직접 고친 기록에만 생긴다).
  */
 export function riskRow(o: {
   stopText: string | null
@@ -49,25 +49,16 @@ export function riskRow(o: {
   ]
 }
 
-/** 현황 보유 카드 리스크 줄 — 지금 손절가 기준. 리스크율이 진입 리스크율을 넘으면 주황(⑤). */
-export function positionRiskCells(p: TradePosition, blind: boolean): Cell[] {
-  const stop = p.nativeStopLoss
-  return riskRow({
-    stopText: stop === null ? null : price(stop, p.currency),
-    stopPercent: p.stopLossPercent,
-    pnl: p.pnlAtStop,
-    pnlPercent: p.pnlAtStopPercent,
-    riskWarn: p.openRiskExceedsEntry,
-    blind,
-  })
-}
-
-/** 현재가 줄 — 현재가(기록 시점) | 수익률 | 손절 여유 | 현재수익. 7일 넘으면 라벨 주황(⑥). */
-export function positionMarkCells(p: TradePosition, blind: boolean): Cell[] {
+/**
+ * 현황 보유 매수 건 카드의 현재가 줄 — 현재가(같은 종목 공통, 기록 시점) | 수익률 | 손절 여유 | 현재수익.
+ * 수익률·현재수익은 이 매수 건의 매수가·수량 기준, 손절 여유는 이 건의 손절가(진입 시 손절가) 기준. 7일 넘으면 라벨 주황(⑥).
+ */
+export function lotMarkCells(p: TradePosition, buy: RatedBuy, blind: boolean): Cell[] {
   const mark = p.mark
-  const ret = p.markReturnPercent
-  const room = p.stopRoomPercent
-  const profit = p.markProfit
+  const ret = mark ? p.lotReturn(buy, mark.price) : null
+  const stop = entryStopLossPrice(buy)
+  const room = mark && mark.price > 0 && stop > 0 ? ((stop - mark.price) / mark.price) * 100 : null
+  const profit = mark ? p.lotProfit(buy, mark.price) : null
   return [
     {
       label: mark ? `현재가 · ${relativeDay(mark.date)}` : '현재가',

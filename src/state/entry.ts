@@ -5,6 +5,6 @@ export type EntryRequest =
   | { kind: 'new' }
   | { kind: 'cash'; type: CashTxType }
   | { kind: 'sell'; positionId: string; lotId?: string }
-  | { kind: 'pyramid'; positionId: string }
+  | { kind: 'add'; positionId: string }
 
 export type OpenEntry = (request: EntryRequest) => void

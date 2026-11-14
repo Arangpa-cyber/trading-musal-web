@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assetsAt, buildSnapshot, cumulativeFees, cumulativeReturnPercent, annualizedReturnPercent, makeSnapshot, netContributions, assetTimeline, timeWeightedReturnPercent } from '../analytics'
+import { assetsAt, buildSnapshot, cumulativeFees, cumulativeReturnPercent, makeSnapshot, netContributions, assetTimeline, timeWeightedReturnPercent } from '../analytics'
 import { cashBalances, feeFor, replayFx, resolveFxRate, resolveRates } from '../fx'
 import { TradePosition } from '../position'
 import { cashDeltaOf, impliedExchangeRate } from '../records'
@@ -33,9 +33,8 @@ describe('자산 계산', () => {
     expect(close(cashBalances(cash, b, s).krw, 1_000_210)).toBe(true)
     expect(close(cumulativeFees(cash, b, s), 90)).toBe(true)
   })
-  it('누적수익률·연환산수익률', () => {
+  it('누적수익률', () => {
     expect(close(cumulativeReturnPercent(1210, 1000), 21)).toBe(true)
-    expect(close(annualizedReturnPercent(21, 365), 21)).toBe(true)
   })
   it('타임라인은 입금·매수마다 점을 찍고, 이익으로 청산하면 TWR이 양수', () => {
     expect(assetTimeline(buys, [], [makeCash('deposit', 1_000_000)]).length).toBe(2)

@@ -126,7 +126,7 @@ export function EntrySheet({ request, onClose }: { request: EntryRequest; onClos
         {category === 'cash' ? (
           <CashForm {...common} initialType={request.kind === 'cash' ? request.type : 'deposit'} />
         ) : type === 'buy' ? (
-          <BuyForm {...common} pyramidPositionId={request.kind === 'pyramid' ? request.positionId : undefined} />
+          <BuyForm {...common} addPositionId={request.kind === 'add' ? request.positionId : undefined} />
         ) : (
           <SellForm {...common} initialPositionId={request.kind === 'sell' ? request.positionId : undefined} initialLotId={request.kind === 'sell' ? request.lotId : undefined} />
         )}

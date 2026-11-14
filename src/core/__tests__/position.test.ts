@@ -70,20 +70,7 @@ describe('외화(USD) — 환율이 붙은 기록', () => {
   })
 })
 
-describe('수익쿠션(확보이익)', () => {
-  const usdPosition = () =>
-    agg([makeBuy({ tradeId: 'p', asset: 'NVDA', qty: 40, price: 145, stopLoss: 140, currency: 'USD', rate: 1350 })])[0]
-
-  it('쿠션은 현재가가 아니라 새 손절가 기준이다', () => {
-    const p = usdPosition()
-    expect(close(p.liquidationProfit(159, 1350), 756_000)).toBe(true)
-    expect(close(p.liquidationProfit(150, 1350), 270_000)).toBe(true)
-  })
-
-  it('손절가가 평단 이하면 확보이익이 0 이하다', () => {
-    expect(usdPosition().liquidationProfit(145, 1350) <= 0).toBe(true)
-  })
-
+describe('손절가 올리기(옛 데이터 정리)', () => {
   it('기존 보유분 손절가 올리기 — 낮은 것만 올린다', () => {
     const b = makeBuy({ tradeId: 'p', qty: 40, price: 145, stopLoss: 140, currency: 'USD', rate: 1350 })
     raiseStopLoss([b], 150)
@@ -97,28 +84,32 @@ describe('리스크 관리', () => {
   const krwBuy = (stop: number, plannedRisk = 100) =>
     makeBuy({ tradeId: 'k', qty: 10, price: 100, stopLoss: stop, plannedRisk, totalAssets: 10_000 })
 
-  it('달러 피라미딩 리스크는 달러로 계산 후 원가 환율 하나로 환산 (SPCX 122주)', () => {
-    const a = makeBuy({ tradeId: 'p', asset: 'SPCX', qty: 60, price: 148.68, stopLoss: 147.2, currency: 'USD', rate: 1369, riskPercent: 0.5, totalAssets: 200_000_000 })
-    const b = makeBuy({ tradeId: 'p', asset: 'SPCX', date: day(20), qty: 62, price: 159.95, stopLoss: 147.2, currency: 'USD', rate: 1357.1, riskPercent: 0.5, totalAssets: 216_600_000 })
-    const [p] = agg([a, b])
-    const dollarRisk = (147.2 - p.nativeAverageBuyPrice) * 122
-    expect(close(p.pnlAtStop, dollarRisk * p.costRate, 0.01)).toBe(true)
-    const oldWay = (147.2 * 1357.1 - p.averageBuyPrice) * 122
-    expect(p.pnlAtStop! > oldWay).toBe(true)
-    expect(Math.abs(-p.pnlAtStop! - 1_198_700) < 10_000).toBe(true)
+  it('보유 중 손절 리스크는 매수 건마다 자기 손절가로 합산한다', () => {
+    const a = makeBuy({ tradeId: 'k', qty: 10, price: 100, stopLoss: 90 }) // −100
+    const b = makeBuy({ tradeId: 'k', date: day(1), qty: 5, price: 120, stopLoss: 110 }) // −50
+    const above = makeBuy({ tradeId: 'k', date: day(2), qty: 5, price: 130, stopLoss: 135 }) // 손절가가 매수가 위 → 0
+    const [p] = agg([a, b, above])
+    expect(close(p.openRiskKRW, 150)).toBe(true)
+    // 판 매수 건은 빼고 센다 — 가장 최근 매수(above)를 팔면 그대로, b까지 팔면 100
+    const sellAbove = makeSell({ tradeId: 'k', date: day(3), qty: 5, price: 140, lots: [above] })
+    expect(close(agg([a, b, above], [sellAbove])[0].openRiskKRW, 150)).toBe(true)
+    const sellBoth = makeSell({ tradeId: 'k', date: day(3), qty: 10, price: 140, lots: [b, above] })
+    expect(close(agg([a, b, above], [sellBoth])[0].openRiskKRW, 100)).toBe(true)
   })
 
-  it('손절률은 평단 기준 부호 있는 값, 손절가 ≥ 평단이면 본전 확보', () => {
-    const p = agg([krwBuy(90)])[0]
-    expect(close(p.stopLossPercent, -10)).toBe(true)
-    expect(close(p.pnlAtStop, -100)).toBe(true)
-    expect(close(p.pnlAtStopPercent, -1)).toBe(true)
-    expect(p.isBreakevenSecured).toBe(false)
-    const q = agg([krwBuy(120)])[0]
-    expect(close(q.stopLossPercent, 20)).toBe(true)
-    expect(close(q.pnlAtStop, 200)).toBe(true)
-    expect(close(q.pnlAtStopPercent, 2)).toBe(true)
-    expect(q.isBreakevenSecured).toBe(true)
+  it('달러 매수 건 리스크는 달러로 계산 후 그 건의 원가 환율로 환산', () => {
+    const a = makeBuy({ tradeId: 'p', asset: 'SPCX', qty: 60, price: 148.68, stopLoss: 147.2, currency: 'USD', rate: 1369, totalAssets: 200_000_000 })
+    const b = makeBuy({ tradeId: 'p', asset: 'SPCX', date: day(20), qty: 62, price: 159.95, stopLoss: 150, currency: 'USD', rate: 1357.1, totalAssets: 216_600_000 })
+    const [p] = agg([a, b])
+    const expected = (148.68 - 147.2) * 60 * 1369 + (159.95 - 150) * 62 * 1357.1
+    expect(close(p.openRiskKRW, expected, 1)).toBe(true)
+  })
+
+  it('손절가가 건마다 따로 — 평균 손절가는 수량 가중평균', () => {
+    const a = makeBuy({ tradeId: 'k', qty: 10, price: 100, stopLoss: 90 })
+    const b = makeBuy({ tradeId: 'k', date: day(1), qty: 30, price: 120, stopLoss: 110 })
+    expect(close(TradePosition.averageStop([a, b]), (900 + 3300) / 40)).toBe(true)
+    expect(TradePosition.averageStop([])).toBeNull()
   })
 
   it('진입 시 손절가는 손절가를 올려도 그대로', () => {
@@ -130,14 +121,13 @@ describe('리스크 관리', () => {
     expect(entryStopLossPrice(legacy)).toBe(120)
   })
 
-  it('현재가 기록 → 수익률·손절 여유·현재수익, 7일 넘으면 낡은 값', () => {
+  it('현재가 기록 → 매수 건 수익률·현재수익, 7일 넘으면 낡은 값', () => {
     const b = krwBuy(90)
     expect(agg([b])[0].mark).toBeNull()
     const now = day(100)
     const p = agg([{ ...b, markPrice: 120, markDate: now - day(3) }])[0]
-    expect(close(p.markReturnPercent, 20)).toBe(true)
-    expect(close(p.stopRoomPercent, -25)).toBe(true)
-    expect(close(p.markProfit, 200)).toBe(true)
+    expect(close(p.lotReturn(b, p.mark!.price), 20)).toBe(true)
+    expect(close(p.lotProfit(b, p.mark!.price), 200)).toBe(true)
     expect(p.isMarkStale(now)).toBe(false)
     expect(agg([{ ...b, markPrice: 120, markDate: now - day(8) }])[0].isMarkStale(now)).toBe(true)
   })
@@ -233,12 +223,6 @@ describe('리스크 관리', () => {
     const expectedA = (0 * 3 + ((86 - 90) / 90) * 100) / 4
     expect(close(a.averageStopGap, expectedA)).toBe(true)
     expect(close(summarize([a, b, c].flatMap((p) => p.outcomes)).avgLossStopGap, expectedA / 2)).toBe(true)
-  })
-
-  it('보유 중 리스크 초과 — 손절가를 내리면 초과, 본전 확보는 판정 안 함', () => {
-    expect(agg([krwBuy(90)])[0].openRiskExceedsEntry).toBe(false)
-    expect(agg([krwBuy(89)])[0].openRiskExceedsEntry).toBe(true)
-    expect(agg([krwBuy(105)])[0].openRiskExceedsEntry).toBe(false)
   })
 
   it('피라미딩 기여 — 분모는 첫 매수 때 총자산, 수수료 포함', () => {
@@ -411,7 +395,7 @@ describe('매수별 매도', () => {
     expect(chronological([...p.outcomes].reverse()).map((o) => o.lotLabel)).toEqual(['1-1', '1-2', '1-3'])
   })
 
-  it('최근 매수부터 판다 — 메뉴 글자·알약 이름', () => {
+  it('최근 매수부터 판다 — 메뉴 글자·매수 건 이름', () => {
     const buys = pyramid()
     const p = new TradePosition('p', '종목', buys, [])
     const lots = p.availableLots()
@@ -419,10 +403,8 @@ describe('매수별 매도', () => {
     expect(TradePosition.lotsSelling(buys[1], lots).map((b) => b.id)).toEqual([buys[1].id, buys[2].id])
     expect(p.sellMenuText(buys[2])).toEqual({ title: '1-3 매도', detail: '10주' })
     expect(p.sellMenuText(buys[1])).toEqual({ title: '1-2까지 매도', detail: '1-2, 1-3 · 25주' })
-    expect(p.nextLotLabel).toBe('1-3')
     const sold = lotSell([buys[2]], 115, day(3))
     const q = new TradePosition('p', '종목', buys, [sold])
-    expect(q.nextLotLabel).toBe('1-2')
     expect(q.lotsLabel(sold.soldBuyIds)).toBe('1-3')
     expect(q.lotsLabel(buys.map((b) => b.id))).toBe('1-1, 1-2, 1-3')
     expect(q.lotsLabel([buys[0].id, buys[2].id])).toBe('1-1, 1-3')

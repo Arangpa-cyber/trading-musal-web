@@ -628,8 +628,19 @@ input.text {
 .lots {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 0 6px 4px;
+  gap: 8px;
+  padding: 6px 0 4px 8px;
+}
+/* 매수 건 카드 — 종목 머리글 아래에 들여써서 한 줄 띠로 묶어 보이게 */
+.lot-card {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 6px 10px 10px 6px;
+  background: var(--fill);
+  padding: 8px 10px;
+}
+.lot-card:active,
+.lot-card[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--fill) 80%, var(--accent) 6%);
 }
 .lot-row {
   display: flex;

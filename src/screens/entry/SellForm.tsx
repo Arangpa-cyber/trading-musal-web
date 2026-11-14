@@ -57,6 +57,8 @@ export function SellForm({
   const sellPrice = parseNum(unitPrice)
   const unit = position?.isForeign ? '$' : '원'
   const lotsForDate = position ? (legacy ? position.buys : chosen) : []
+  // 손절가는 매수 건마다 따로 — 판 매수 건들의 손절가를 수량으로 가중평균(옛 기록은 대표 손절가).
+  const soldStop = position ? (legacy ? position.nativeStopLoss : TradePosition.averageStop(chosen)) : null
 
   const blockReasons: string[] = []
   if (!position) blockReasons.push('매도할 자산을 선택하세요')
@@ -68,14 +70,14 @@ export function SellForm({
     if (late) blockReasons.push(`매도일이 ${position.lotLabel(late)} 매수일(${fixedDateText(late.date)})보다 빨라요`)
   }
 
-  // 미리보기 — 예상 실현손익(포지션 평균단가 기준, 수수료 포함)·수익률·손절가대비(지금 손절가 기준).
+  // 미리보기 — 예상 실현손익(포지션 평균단가 기준, 수수료 포함)·수익률·손절가대비(팔리는 매수 건의 손절가 기준).
   let preview: { items: [string, string][]; tones: Record<string, Tone> } | null = null
   if (position && quantity > 0 && sellPrice !== null && sellPrice > 0 && position.nativeAverageBuyPrice > 0) {
     const nativeFee = (parseNum(fee) ?? 0) + (parseNum(tax) ?? 0)
     const split = position.pnlSplitPreview(quantity, sellPrice * quantity - nativeFee, position.averageBuyExchangeRate)
     const profit = split.trading + split.fx
     const ret = (sellPrice / position.nativeAverageBuyPrice - 1) * 100
-    const stop = position.nativeStopLoss
+    const stop = soldStop
     const gap = stop === null ? null : stopGapPercent(sellPrice, stop)
     const tone: Tone = profit >= 0 ? 'red' : 'blue'
     preview = {
@@ -112,7 +114,7 @@ export function SellForm({
       currency: position.currency,
       fee: parseNum(fee) ?? 0,
       tax: parseNum(tax) ?? 0,
-      stopLossAtSell: position.nativeStopLoss ?? 0, // 매도 시점 손절가 — 매도 카드 "손절가대비"
+      stopLossAtSell: soldStop ?? 0, // 팔리는 매수 건들의 손절가(수량 가중평균) — 매도 카드 "손절가대비"
       soldBuyIds: legacy ? [] : available.map((l) => l.id).filter((id) => lots.has(id)),
     }
     save({ sells: [record] })

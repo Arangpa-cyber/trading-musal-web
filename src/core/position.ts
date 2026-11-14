@@ -4,6 +4,8 @@ import {
   buyAmountKRW,
   buyCostKRW,
   buyCostNative,
+  entryPnlAtStop,
+  entryStopLossPrice,
   sellAmountKRW,
   sellNetNative,
   type RatedBuy,
@@ -361,11 +363,6 @@ export class TradePosition {
     return r === null ? null : r > 0
   }
 
-  /** 잔량 전부를 `nativePrice`에 판다고 가정한 손익(원, 순수 가격 기준) — 피라미딩 쿠션(확보이익). */
-  liquidationProfit(nativePrice: number, exchangeRate: number): number {
-    return (nativePrice * exchangeRate - this.averageBuyPrice) * this.remainingQuantity
-  }
-
   // MARK: 리스크 관리 — 달러로 먼저 계산한 뒤 포지션 원가 환율 하나로 환산한다.
 
   /** 대표 매매계획 = 가장 최근 매수건. */
@@ -384,32 +381,17 @@ export class TradePosition {
     return this.plan?.stopLossPrice ?? null
   }
 
-  /** 손절률(%) = (손절가 − 평단) ÷ 평단. */
-  get stopLossPercent(): number | null {
-    const stop = this.nativeStopLoss
-    const avg = this.nativeAverageBuyPrice
-    if (stop === null || avg <= 0) return null
-    return ((stop - avg) / avg) * 100
-  }
-
-  /** 손절 시 손익(원) = (손절가 − 평단) × 잔량 × 원가 환율. */
-  get pnlAtStop(): number | null {
-    const stop = this.nativeStopLoss
-    if (stop === null) return null
-    return (stop - this.nativeAverageBuyPrice) * this.remainingQuantity * this.costRate
-  }
-
-  /** 손절 시 손익 ÷ 대표 매수건 진입 시 총자산(%) — 음수면 리스크율, 양수면 확보수익률. */
-  get pnlAtStopPercent(): number | null {
-    const pnl = this.pnlAtStop
-    const base = this.plan?.totalAssetsAtEntry
-    if (pnl === null || !base || base <= 0) return null
-    return (pnl / base) * 100
-  }
-
-  /** 손절가 ≥ 평단 — "본전 확보". */
-  get isBreakevenSecured(): boolean {
-    return (this.pnlAtStop ?? -1) >= 0
+  /**
+   * 보유 중인 매수 건별 손절 리스크 합(원) — 건마다 자기 손절가(진입 시 손절가)에서 팔린다고 본다.
+   * 손절가가 매수가 이상이면 그 건은 0. 판 매수를 구분할 수 없는 옛 기록이 섞여 있으면 대표 손절가·평단 기준.
+   */
+  get openRiskKRW(): number {
+    if (this.hasLegacySells) {
+      const stop = this.nativeStopLoss
+      if (stop === null) return 0
+      return Math.max(-(stop - this.nativeAverageBuyPrice) * this.remainingQuantity * this.costRate, 0)
+    }
+    return this.availableLots().reduce((a, b) => a + Math.max(-entryPnlAtStop(b), 0), 0)
   }
 
   /** 가장 최근에 기록한 현재가(거래 통화)와 기록 시각. */
@@ -418,28 +400,6 @@ export class TradePosition {
       .filter((b) => b.markDate !== null && b.markPrice > 0)
       .map((b) => ({ price: b.markPrice, date: b.markDate as Millis }))
     return maxBy(marks, (m) => m.date)
-  }
-
-  get markReturnPercent(): number | null {
-    const m = this.mark
-    const avg = this.nativeAverageBuyPrice
-    if (!m || avg <= 0) return null
-    return (m.price / avg - 1) * 100
-  }
-
-  /** 현재수익(원) = (현재가 − 평단) × 잔량 × 원가 환율(환율 변동 제외). */
-  get markProfit(): number | null {
-    const m = this.mark
-    if (!m) return null
-    return (m.price - this.nativeAverageBuyPrice) * this.remainingQuantity * this.costRate
-  }
-
-  /** 손절 여유(%) = (손절가 − 현재가) ÷ 현재가. 0 이상이면 손절가 도달. */
-  get stopRoomPercent(): number | null {
-    const m = this.mark
-    const stop = this.nativeStopLoss
-    if (!m || m.price <= 0 || stop === null) return null
-    return ((stop - m.price) / m.price) * 100
   }
 
   /** ⑥ 현재가를 기록한 지 7일 넘음(달력 기준). */
@@ -466,7 +426,7 @@ export class TradePosition {
     return base === null ? null : (this.pnlSplit(sell).trading / base) * 100
   }
 
-  /** 진입 리스크율(%) — 첫 매수가 총자산 기준일 때. 수익쿠션이거나 0이면 null. */
+  /** 진입 리스크율(%) — 첫 매수가 총자산 기준일 때. 옛 수익쿠션 기록이거나 0이면 null. */
   get entryRiskPercent(): number | null {
     const first = this.firstBuy
     if (!first || first.riskMode !== 'totalAssets' || first.riskPercent <= 0) return null
@@ -479,6 +439,14 @@ export class TradePosition {
     const contribution = this.accountContribution(sell)
     if (risk === null || contribution === null) return false
     return contribution < -risk - 0.05
+  }
+
+  /** 여러 매수 건을 한 번에 팔 때의 손절가(거래 통화) — 각 건의 진입 시 손절가를 수량으로 가중평균. */
+  static averageStop(lots: RatedBuy[]): number | null {
+    const qty = lots.reduce((a, l) => a + l.quantity, 0)
+    if (qty <= 0) return null
+    const stop = lots.reduce((a, l) => a + entryStopLossPrice(l) * l.quantity, 0) / qty
+    return stop > 0 ? stop : null
   }
 
   /** 이 매도의 손절가(거래 통화) — 저장 때 기록한 매도 시점 손절가, 없으면 지금 손절가. */
@@ -510,14 +478,6 @@ export class TradePosition {
   isAveragingDown(buy: RatedBuy): boolean {
     const average = this.ledger.nativeAverageBeforeBuy.get(buy.id)
     return average !== undefined && buy.unitPrice < average
-  }
-
-  /** ⑤ 보유 중 리스크가 진입 리스크율을 0.05%p 넘게 넘었나. 본전 확보·수익쿠션 진입은 판정 안 함. */
-  get openRiskExceedsEntry(): boolean {
-    const risk = this.entryRiskPercent
-    const pct = this.pnlAtStopPercent
-    if (risk === null || pct === null || pct >= 0) return false
-    return -pct > risk + 0.05
   }
 
   /** 포지션 전체 계좌기여율(%, 완결 포지션). */
@@ -643,12 +603,6 @@ export class TradePosition {
     return { title: `${name}까지 매도`, detail: `${range} · ${quantity}주` }
   }
 
-  /** 현황 보유 카드 알약 — 다음에 팔릴 매수 이름. */
-  get nextLotLabel(): string | null {
-    const next = this.hasLegacySells ? this.orderedBuys.at(-1) : this.availableLots().at(-1)
-    return next ? this.lotLabel(next) : null
-  }
-
   // MARK: 완료 거래(매수 단위)
 
   /** 매수별 수익률(%) — 그 매수 자기 매수가 기준. */
@@ -658,7 +612,8 @@ export class TradePosition {
   }
 
   /** 매수별 매매손익(원, 수수료 미반영·환율 변동 제외). */
-  private lotProfit(buy: RatedBuy, nativePrice: number): number {
+  /** 매수 건 손익(원, 수수료 미반영·환율 변동 제외) — 그 매수 자기 매수가·수량 기준. */
+  lotProfit(buy: RatedBuy, nativePrice: number): number {
     const rate = buy.rate > 0 ? buy.rate : 1
     return (nativePrice - buy.unitPrice) * buy.quantity * rate
   }

@@ -42,11 +42,11 @@ export function sampleData(): JournalData {
     buys.push(b)
     sells.push(sell([b], i * 4 + 3, 100_000 * (1 + r / 100)))
   })
-  // 보유 — 피라미딩 3건 중 1-3을 판 포지션
+  // 보유 — 추가 매수 3건 중 1-3을 판 포지션
+  // 같은 종목에 비중을 더하면 매수 건(1-1·1-2·1-3)마다 손절가가 따로다.
   const p1 = buy('hold1', 120, '효성중공업', 20, 300_000, 285_000)
-  const p2 = buy('hold1', 126, '효성중공업', 10, 330_000, 312_000, { riskMode: 'profitCushion', riskPercent: 0 })
-  const p3 = buy('hold1', 131, '효성중공업', 5, 355_000, 312_000, { riskMode: 'profitCushion', riskPercent: 0 })
-  for (const b of [p1, p2, p3]) b.stopLossPrice = 312_000
+  const p2 = buy('hold1', 126, '효성중공업', 10, 330_000, 312_000)
+  const p3 = buy('hold1', 131, '효성중공업', 5, 355_000, 337_000)
   p1.markPrice = 361_000
   p1.markDate = start + 168 * DAY
   buys.push(p1, p2, p3)
@@ -54,8 +54,8 @@ export function sampleData(): JournalData {
   // 보유 — 달러 종목
   const u = buy('hold2', 150, 'SPCX', 12, 159.95, 147.2, { currency: 'USD', fallbackRate: 1360, plannedRiskAmount: 40_000, fee: 1.91 })
   buys.push(u)
-  // 보유 — 손절가를 내린 종목(리스크 초과)
-  buys.push(buy('hold3', 160, '레인보우로보틱스', 8, 180_000, 160_000, { initialStopLossPrice: 171_000 }))
+  // 보유 — 손절폭이 넓은 종목(손절률 주황)
+  buys.push(buy('hold3', 160, '레인보우로보틱스', 8, 180_000, 160_000))
   // ?pie=many — 파이 지시선 라벨 확인용(예수금이 크고 소액 종목이 많은 모양, iOS 프리뷰와 같다).
   if (new URLSearchParams(window.location.search).get('pie') === 'many') {
     for (const [i, [name, price]] of ([['META', 60_000], ['SPC삼립', 60_000], ['DELL', 38_000], ['HYPE', 17_000], ['ETH', 11_000], ['XRP', 4_000]] as const).entries()) {

@@ -12,7 +12,6 @@ import {
   type BuyReason,
   type CashTx,
   type Currency,
-  type RiskMode,
 } from '../../core'
 import { useJournal } from '../../state/journal'
 import {
@@ -45,36 +44,29 @@ const newTranche = (): Tranche => ({ id: crypto.randomUUID(), price: '', quantit
 
 /** 리스크율이 이 값을 넘으면 주황 경고. */
 const RISK_WARNING_PERCENT = 2
-const PNL_AT_STOP = '손절 시 전체 손익'
 const ACTUAL_RISK = '실제 리스크'
 
 /** 입력칸 숫자 표기 — 0.5 → "0.5", 7 → "7". */
 const plain = (v: number) => String(Number(v.toFixed(4)))
 
-export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, busy }: EntryFormProps & { pyramidPositionId?: string }) {
+export function BuyForm({ date, addPositionId, onDirty, onCurrency, save, busy }: EntryFormProps & { addPositionId?: string }) {
   const { snapshot, data } = useJournal()
   const [blind] = useBlind()
   const settings = data.settings
   const open = snapshot.openPositions
   const cash = snapshot.cash
 
-  const pyramid = open.find((p) => p.id === pyramidPositionId)
-  // 피라미딩으로 열면 손절가 = 지금 손절가, 목표 매수가 = 기록된 현재가로 채운다(손절률은 두 값에서 자동).
-  const cushionPlan = (id: string) => {
-    const p = open.find((x) => x.id === id)
-    const fmt = (v: number) => (p?.isForeign ? v.toFixed(2) : String(Math.round(v)))
-    return { stop: p?.nativeStopLoss != null ? fmt(p.nativeStopLoss) : '', entry: p?.mark ? fmt(p.mark.price) : '' }
-  }
-
-  const [riskMode, setRiskMode] = useState<RiskMode>(pyramid ? 'profitCushion' : 'totalAssets')
+  // 보유 카드 메뉴 "추가 매수"로 열면 자산명·통화·목표 매수가(기록된 현재가)를 채운다. 새 매수 건(N-n)으로 따로 기록되고
+  // 손절가·리스크도 이 건만의 것이다(기존 매수 건엔 영향 없음).
+  const addTarget = open.find((p) => p.id === addPositionId)
   const [riskPercent, setRiskPercent] = useState(plain(settings.defaultRiskPercent))
-  const [cushionId, setCushionId] = useState(pyramid?.id ?? '')
-  const [cushionUsage, setCushionUsage] = useState(1)
-  const [assetName, setAssetName] = useState('')
-  const [currency, setCurrency] = useState<Currency>('KRW')
+  const [assetName, setAssetName] = useState(addTarget?.assetName ?? '')
+  const [currency, setCurrency] = useState<Currency>(addTarget?.currency ?? 'KRW')
   const [buyReason, setBuyReason] = useState<BuyReason>('breakout')
-  const [entryText, setEntryText] = useState(() => (pyramid ? cushionPlan(pyramid.id).entry : ''))
-  const [stopText, setStopText] = useState(() => (pyramid ? cushionPlan(pyramid.id).stop : ''))
+  const [entryText, setEntryText] = useState(() =>
+    addTarget?.mark ? (addTarget.isForeign ? addTarget.mark.price.toFixed(2) : String(Math.round(addTarget.mark.price))) : '',
+  )
+  const [stopText, setStopText] = useState('')
   const [pctText, setPctText] = useState('')
   const [tranches, setTranches] = useState<Tranche[]>(() => [newTranche()])
   const [exchangeWithBuy, setExchangeWithBuy] = useState(false)
@@ -82,16 +74,14 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const [exUsd, setExUsd] = useState('')
   const [tax, setTax] = useState('')
 
-  const { dirty, rebase } = useDraft({
+  const { dirty } = useDraft({
     riskPercent, assetName, entryText, stopText, pctText,
     tranches: tranches.map((t) => `${t.price}|${t.quantity}|${t.fee}`).join(','),
     exKrw, exUsd, tax,
   })
   useEffect(() => onDirty(dirty), [dirty, onDirty])
 
-  const cushionPos = open.find((p) => p.id === cushionId) ?? null
-  const isCushion = riskMode === 'profitCushion'
-  const effCurrency: Currency = isCushion ? (cushionPos?.currency ?? 'KRW') : currency
+  const effCurrency: Currency = currency
   const isForeign = effCurrency !== 'KRW'
   useEffect(() => onCurrency(effCurrency), [effCurrency, onCurrency])
   const unit = isForeign ? '$' : '원'
@@ -114,7 +104,7 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const name = assetName.trim()
   // 같은 종목 = 항상 한 포지션 — 같은 이름·통화로 보유 중이면 거기에 합쳐진다(같은 게 여럿이면 먼저 산 쪽).
   const joinTarget =
-    !isCushion && name
+    name
       ? [...open]
           .filter((p) => p.assetName.trim() === name && p.currency === currency)
           .sort((a, b) => (a.firstBuyDate ?? 0) - (b.firstBuyDate ?? 0))[0] ?? null
@@ -125,7 +115,7 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const stopIn = parseNum(stopText)
   const pctIn = parseNum(pctText)
   // 기본 손절률 — 총자산 기준에서 손절률·손절가를 둘 다 안 적었을 때만 쓰는 대체값.
-  const fallbackPct = !isCushion && settings.defaultStopLossPercent > 0 && pctIn === null && stopIn === null ? settings.defaultStopLossPercent : null
+  const fallbackPct = settings.defaultStopLossPercent > 0 && pctIn === null && stopIn === null ? settings.defaultStopLossPercent : null
   const derivedEntry = entryIn === null && stopIn !== null && pctIn !== null && 1 - pctIn / 100 > 0 ? stopIn / (1 - pctIn / 100) : null
   const pctForStop = pctIn ?? fallbackPct
   const derivedStop = stopIn === null && entryIn !== null && pctForStop !== null && entryIn * (1 - pctForStop / 100) > 0 ? entryIn * (1 - pctForStop / 100) : null
@@ -133,20 +123,13 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const entry = entryIn ?? derivedEntry
   const stop = stopIn ?? derivedStop
 
-  // 수익쿠션 = 새 손절가 기준 확보이익(같은 자산명 보유 전체, 현재가 기준 아님).
-  const cushionLots = cushionPos ? open.filter((p) => p.assetName === cushionPos.assetName) : []
-  const secured = isCushion && cushionLots.length && stop !== null ? cushionLots.reduce((a, p) => a + p.liquidationProfit(stop, fxRate), 0) : null
-  const cushionDepleted = (secured ?? 1) <= 0
-  const riskAmount = isCushion ? Math.max(secured ?? 0, 0) * cushionUsage : (snapshot.totalAssets * effRisk) / 100
-  const riskAmountText = isCushion && secured === null ? '-' : wonCompact(riskAmount)
+  const riskAmount = (snapshot.totalAssets * effRisk) / 100
+  const riskAmountText = wonCompact(riskAmount)
 
   const perShare = entry !== null && stop !== null && entry - stop > 0 ? entry - stop : null
   const recommended = perShare !== null && riskAmount > 0 && fxRate > 0 ? Math.floor(riskAmount / (perShare * fxRate)) || null : null
   const plannedAmount = recommended !== null && entry !== null ? recommended * entry * fxRate : null
-  const pnlAtStop = (qty: number, at: number, rate: number) => (isCushion && secured !== null && stop !== null && qty > 0 ? secured - (at - stop) * qty * rate : null)
   const weight = (krw: number | null) => (krw === null || snapshot.totalAssets <= 0 ? '-' : `${((krw / snapshot.totalAssets) * 100).toFixed(1)}%`)
-  const signedCompact = (v: number) => (v >= 0 ? '+' : '') + wonCompact(v)
-  const pnlText = (v: number | null) => (v === null ? '-' : blind ? '•••' : signedCompact(v))
 
   // 분할매수 계산기
   const feeRate = isForeign ? settings.feeRateUSD : settings.feeRateKRW
@@ -164,7 +147,6 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const actualAmount = totalQty > 0 && fillRate !== null ? (totalFill + totalFee) * fillRate : null
   const actualRisk = avgPrice !== null && stop !== null && totalQty > 0 && fillRate !== null ? (Math.max(avgPrice - stop, 0) * totalQty + (isForeign ? totalFee : 0)) * fillRate : null
   const actualRiskExceeded = actualRisk !== null && riskAmountText !== '-' && actualRisk > riskAmount + 1
-  const actualPnlAtStop = avgPrice === null ? null : pnlAtStop(totalQty, avgPrice, fillRate ?? fxRate)
   // 체결 가격 확인 — 목표 매수가와 20% 넘게 다르면(0 하나 빠뜨림 등) 주황으로 다시 보게 한다.
   const priceMismatch =
     entry !== null && entry > 0
@@ -179,7 +161,7 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   const usdShort = Math.max(needed - cash.usd, 0)
 
   const blockReasons: string[] = []
-  if (!(isCushion ? cushionPos?.assetName ?? '' : name)) blockReasons.push(isCushion ? '추가매수 대상 포지션을 선택하세요' : '자산명을 입력하세요')
+  if (!name) blockReasons.push('자산명을 입력하세요')
   if (entry !== null && stop !== null) {
     if (stop >= entry) blockReasons.push('손절가가 목표 매수가보다 낮아야 해요')
   } else blockReasons.push('매매계획의 목표 매수가·손절가를 채우세요')
@@ -195,33 +177,20 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
     if (last) setCurrency(last.currency)
   }
 
-  function chooseCushion(id: string) {
-    setCushionId(id)
-    const plan = cushionPlan(id)
-    setStopText(plan.stop)
-    setEntryText(plan.entry)
-    setPctText('')
-    rebase({ stopText: plan.stop, entryText: plan.entry, pctText: '' }) // 자동으로 채운 칸은 "작성 중"이 아니다
-  }
-
   function submit() {
     if (blockReasons.length || entry === null || stop === null || avgPrice === null || fillRate === null) return
-    const target = isCushion ? cushionPos : joinTarget
-    const tradeId = target?.id ?? crypto.randomUUID()
-    // 피라미딩·같은 종목 합치기 — 기존 매수 손절가를 새 손절가로 올린다(올리기만).
-    const raised: Buy[] = target
-      ? data.buys.filter((b) => b.tradeId === target.id && b.stopLossPrice < stop - 1e-6).map((b) => ({ ...b, stopLossPrice: stop }))
-      : []
+    // 같은 종목이면 기존 포지션에 새 매수 건(N-n)으로 붙는다 — 손절가는 이 건에만 적용되고 기존 건은 그대로다.
+    const tradeId = joinTarget?.id ?? crypto.randomUUID()
     const record: Buy = {
       id: crypto.randomUUID(),
       tradeId,
       date,
-      assetName: joinTarget?.assetName ?? (isCushion ? cushionPos!.assetName : name),
+      assetName: joinTarget?.assetName ?? name,
       quantity: totalQty,
       unitPrice: avgPrice,
       buyReason,
       targetEntryPrice: entry,
-      riskMode,
+      riskMode: 'totalAssets',
       riskPercent: effRisk, // 주화입마 잠금이면 상한으로 클램프된 값
       plannedRiskAmount: riskAmount,
       stopLossPrice: stop,
@@ -239,12 +208,10 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
       isForeign && exRateKrw !== null && exRateUsd !== null
         ? [{ id: crypto.randomUUID(), date, type: 'exchange', amount: exRateKrw, memo: `${record.assetName} 매수 시 환전`, currency: 'KRW', foreignAmount: exRateUsd, direction: 'krwToUsd' }]
         : []
-    save({ cash: exchanges, buys: [...raised, record] })
+    save({ cash: exchanges, buys: [record] })
   }
 
   const planItems: [string, string][] = [['추천 매수 수량', recommended !== null ? `${recommended}주` : '-']]
-  const plannedPnl = recommended !== null && entry !== null ? pnlAtStop(recommended, entry, fxRate) : null
-  if (isCushion) planItems.push([PNL_AT_STOP, pnlText(plannedPnl)])
   planItems.push(['총 매수금액', plannedAmount !== null ? wonCompact(plannedAmount) : '-'], ['비중', weight(plannedAmount)])
 
   const calcItems: [string, string][] = [
@@ -255,10 +222,8 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   ]
   if (isForeign) calcItems.push(['원가 환율', fillRate !== null ? rateText(fillRate) : '-'])
   calcItems.push(['총자산 대비 비중', weight(actualAmount)], [ACTUAL_RISK, actualRisk !== null ? `${blind ? '•••' : wonCompact(actualRisk)} (허용 ${riskAmountText})` : '-'])
-  if (isCushion) calcItems.push([PNL_AT_STOP, pnlText(actualPnlAtStop)])
   const calcTones: Record<string, Tone> = {}
   if (actualRiskExceeded) calcTones[ACTUAL_RISK] = 'orange'
-  if (!blind && (actualPnlAtStop ?? 0) < 0) calcTones[PNL_AT_STOP] = 'orange'
 
   const rateNote = isForeign && (
     <FormRow className="form-note">
@@ -273,106 +238,52 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
   return (
     <>
       <FormSection title="리스크 설정" icon={Shield}>
-        <FormRow>
-          <Segmented
-            options={[{ value: 'totalAssets', label: '총자산 기준' }, { value: 'profitCushion', label: '수익쿠션 기준' }]}
-            value={riskMode}
-            onChange={setRiskMode}
-            label="리스크 기준"
-          />
-        </FormRow>
-        {!isCushion ? (
-          <>
-            <FieldRow label="현재 총자산">
-              <span>{blind ? '•••' : won(snapshot.totalAssets)}</span>
-            </FieldRow>
-            <FieldRow label="리스크율">
-              <NumberField label="리스크율" value={riskPercent} onChange={setRiskPercent} placeholder="리스크율" unit="%" decimal />
-            </FieldRow>
-            {lock !== null ? (
-              <FormRow className="form-note tone-orange">
-                주화입마 상태예요. 리스크율이 평소 {settings.defaultRiskPercent}% → 최대 {lock}%로 제한돼 허용손실이{' '}
-                {blind ? '•••' : `${wonCompact((snapshot.totalAssets * settings.defaultRiskPercent) / 100)} → ${wonCompact((snapshot.totalAssets * lock) / 100)}`}이 돼요 — 초과 입력해도 이 값으로 계산·저장돼요.
-              </FormRow>
-            ) : (
-              <>
-                {snapshot.grading.losingStreak >= LOSING_STREAK_NOTICE && (
-                  <FormRow className="form-note tone-orange">최근 {snapshot.grading.losingStreak}연패예요. 크기를 줄여 보세요.</FormRow>
-                )}
-                {effRisk > RISK_WARNING_PERCENT && <FormRow className="form-note tone-orange">리스크율이 {RISK_WARNING_PERCENT}%를 넘어요. 한 번 손절에 계좌가 크게 줄 수 있어요.</FormRow>}
-              </>
-            )}
-          </>
-        ) : open.length === 0 ? (
-          <FormRow className="muted">보유 중인 포지션이 없습니다</FormRow>
+        <FieldRow label="현재 총자산">
+          <span>{blind ? '•••' : won(snapshot.totalAssets)}</span>
+        </FieldRow>
+        <FieldRow label="리스크율">
+          <NumberField label="리스크율" value={riskPercent} onChange={setRiskPercent} placeholder="리스크율" unit="%" decimal />
+        </FieldRow>
+        {lock !== null ? (
+          <FormRow className="form-note tone-orange">
+            주화입마 상태예요. 리스크율이 평소 {settings.defaultRiskPercent}% → 최대 {lock}%로 제한돼 허용손실이{' '}
+            {blind ? '•••' : `${wonCompact((snapshot.totalAssets * settings.defaultRiskPercent) / 100)} → ${wonCompact((snapshot.totalAssets * lock) / 100)}`}이 돼요 — 초과 입력해도 이 값으로 계산·저장돼요.
+          </FormRow>
         ) : (
           <>
-            <FormRow>
-              <select className="select-field" aria-label="추가매수 대상 포지션" value={cushionId} onChange={(e) => chooseCushion(e.target.value)}>
-                <option value="">추가매수 대상 포지션 선택</option>
-                {open.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.assetName} · {p.remainingQuantity}주 · 평단 {price(p.isForeign ? p.nativeAverageBuyPrice : p.averageBuyPrice, p.currency)}
-                  </option>
-                ))}
-              </select>
-            </FormRow>
-            <FormRow className="form-note muted">피라미딩은 보유 중인 포지션에 추가매수하는 거라, 새 종목을 입력하는 대신 여기서 골라요.</FormRow>
-            {cushionPos && (
-              <>
-                <FormRow className="form-note muted">
-                  지금 손절가 {cushionPos.nativeStopLoss !== null ? price(cushionPos.nativeStopLoss, cushionPos.currency) : '-'} · 평단 {price(cushionPos.nativeAverageBuyPrice, cushionPos.currency)} — 평단 위로 올려야 쿠션이 생겨요.
-                </FormRow>
-                <FieldRow label="새 손절가">
-                  <NumberField label="새 손절가" value={stopText} onChange={setStopText} placeholder={derivedStop !== null ? fmtField(derivedStop) : '새 손절가'} unit={unit} decimal={isForeign} />
-                </FieldRow>
-                <FormRow>
-                  <Segmented options={[{ value: 1, label: '쿠션 100% 걸기' }, { value: 0.5, label: '50%만 걸기' }]} value={cushionUsage} onChange={setCushionUsage} label="쿠션 사용률" />
-                </FormRow>
-                {secured !== null && secured > 0 && stop !== null && (
-                  <FormRow>
-                    손절가 {price(stop, effCurrency)}에서 다 팔려도 기존분 {blind ? '•••' : signedCompact(secured)} 남음
-                    {cushionUsage < 1 && ` — 그중 ${blind ? '•••' : signedCompact(riskAmount)}만 걸어요`}
-                    {recommended !== null ? ` → 추가로 최대 ${recommended}주` : entry === null ? ' → 목표 매수가를 넣으면 추가 수량이 나와요' : ''}
-                  </FormRow>
-                )}
-                {rateNote}
-              </>
+            {snapshot.grading.losingStreak >= LOSING_STREAK_NOTICE && (
+              <FormRow className="form-note tone-orange">최근 {snapshot.grading.losingStreak}연패예요. 크기를 줄여 보세요.</FormRow>
             )}
+            {effRisk > RISK_WARNING_PERCENT && <FormRow className="form-note tone-orange">리스크율이 {RISK_WARNING_PERCENT}%를 넘어요. 한 번 손절에 계좌가 크게 줄 수 있어요.</FormRow>}
           </>
         )}
         <div className="form-row">
           <SummaryBox items={[['허용손실', riskAmountText]]} />
         </div>
-        {isCushion && cushionDepleted && <FormRow className="form-note tone-orange">손절가가 평단 이하라 쓸 수 있는 쿠션이 없어요. 총자산 기준을 사용하세요.</FormRow>}
       </FormSection>
 
-      {!isCushion && (
-        <>
-          <FormSection title="자산명" icon={Tag}>
-            <FormRow>
-              <TextField value={assetName} onChange={changeAsset} placeholder="예: 삼성전자, 금ETF, 비트코인" list="known-assets" />
-              <datalist id="known-assets">
-                {knownAssets.map((a) => (
-                  <option key={a} value={a} />
-                ))}
-              </datalist>
-            </FormRow>
-            {joinTarget && (
-              <FormRow className="form-note tone-orange">
-                보유 중인 {joinTarget.assetName} 포지션({joinTarget.remainingQuantity}주 · 평단{' '}
-                {price(joinTarget.isForeign ? joinTarget.nativeAverageBuyPrice : joinTarget.averageBuyPrice, joinTarget.currency)})에 합쳐져요. 평단·수량이 합산되고, 기존 매수분 손절가는 새 손절가보다 낮으면 올라가요.
-              </FormRow>
-            )}
-          </FormSection>
-          <FormSection title="통화" icon={CircleDollarSign}>
-            <FormRow>
-              <Segmented options={[{ value: 'KRW', label: '원화 ₩' }, { value: 'USD', label: '달러 $' }]} value={currency} onChange={setCurrency} label="통화" />
-            </FormRow>
-            {rateNote}
-          </FormSection>
-        </>
-      )}
+      <FormSection title="자산명" icon={Tag}>
+        <FormRow>
+          <TextField value={assetName} onChange={changeAsset} placeholder="예: 삼성전자, 금ETF, 비트코인" list="known-assets" />
+          <datalist id="known-assets">
+            {knownAssets.map((a) => (
+              <option key={a} value={a} />
+            ))}
+          </datalist>
+        </FormRow>
+        {joinTarget && (
+          <FormRow className="form-note tone-orange">
+            보유 중인 {joinTarget.assetName} 포지션({joinTarget.remainingQuantity}주 · 평단{' '}
+            {price(joinTarget.isForeign ? joinTarget.nativeAverageBuyPrice : joinTarget.averageBuyPrice, joinTarget.currency)})에 새 매수 건으로 붙어요. 평단·수량은 합산되지만 손절가·리스크는 이 건만의 것이고 기존 매수 건은 그대로예요.
+          </FormRow>
+        )}
+      </FormSection>
+      <FormSection title="통화" icon={CircleDollarSign}>
+        <FormRow>
+          <Segmented options={[{ value: 'KRW', label: '원화 ₩' }, { value: 'USD', label: '달러 $' }]} value={currency} onChange={setCurrency} label="통화" />
+        </FormRow>
+        {rateNote}
+      </FormSection>
 
       <FormSection title="매수 이유" icon={BookOpen}>
         <FormRow>
@@ -389,11 +300,9 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
         <FieldRow label="목표 매수가">
           <NumberField label="목표 매수가" value={entryText} onChange={setEntryText} placeholder={derivedEntry !== null ? fmtField(derivedEntry) : '목표 매수가'} unit={unit} decimal={isForeign} />
         </FieldRow>
-        {!isCushion && (
-          <FieldRow label="손절가">
-            <NumberField label="손절가" value={stopText} onChange={setStopText} placeholder={derivedStop !== null ? fmtField(derivedStop) : '손절가'} unit={unit} decimal={isForeign} />
-          </FieldRow>
-        )}
+        <FieldRow label="손절가">
+          <NumberField label="손절가" value={stopText} onChange={setStopText} placeholder={derivedStop !== null ? fmtField(derivedStop) : '손절가'} unit={unit} decimal={isForeign} />
+        </FieldRow>
         <FieldRow label="손절률">
           <NumberField
             label="손절률"
@@ -406,19 +315,15 @@ export function BuyForm({ date, pyramidPositionId, onDirty, onCurrency, save, bu
         </FieldRow>
         {fallbackPct !== null && <FormRow className="form-note muted">설정의 기본 손절률 {plain(fallbackPct)}%를 쓰고 있어요. 손절률이나 손절가를 직접 적으면 그 값이 우선이에요.</FormRow>}
         <div className="form-row">
-          <SummaryBox items={planItems} tones={!blind && (plannedPnl ?? 0) < 0 ? { [PNL_AT_STOP]: 'orange' } : {}} />
+          <SummaryBox items={planItems} />
         </div>
         {(entry === null || stop === null) && (
-          <FormRow className="form-note muted">
-            {isCushion
-              ? '손절가는 위 리스크 설정의 새 손절가를 써요. 목표 매수가나 손절률을 채우면 추천 수량이 계산돼요.'
-              : '목표 매수가·손절가·손절률 중 둘을 채우면 나머지가 자동 계산돼요.'}
-          </FormRow>
+          <FormRow className="form-note muted">목표 매수가·손절가·손절률 중 둘을 채우면 나머지가 자동 계산돼요.</FormRow>
         )}
       </FormSection>
 
       <FormSection title="분할매수 계산기 (실제 체결)" icon={Calculator}>
-        <FormRow className="form-note muted">같은 날 같은 결정으로 나눠 체결된 것만 합치세요. 수익이 난 뒤 추가로 사는 것(피라미딩)은 따로 기록하세요.</FormRow>
+        <FormRow className="form-note muted">같은 날 같은 결정으로 나눠 체결된 것만 합치세요. 같은 종목을 나중에 더 사는 건 따로(보유 카드 메뉴의 "추가 매수") 기록하세요 — 각각 손절가가 따로예요.</FormRow>
         {tranches.map((t, i) => {
           const auto = autoFee(t)
           const set = (patch: Partial<Tranche>) => setTranches((prev) => prev.map((x) => (x.id === t.id ? { ...x, ...patch } : x)))

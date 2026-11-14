@@ -2,7 +2,7 @@
 // 그래프는 "총자산 | 누적손익" 한 번에 하나(두 값을 한 축에 그리면 크기 차이로 납작해져서 예전에 실패한 방식).
 // - 총자산: 총자산 실선 + 순입금액 점선 + 둘 사이 간격 색칠(이익 연빨강/손실 연파랑) + 입금 ▲ · 출금 ▼.
 // - 누적손익: 누적손익 선 + 0 기준 위아래 색칠 + 거래 완결 수익 ▲ / 손실 ▼ + 최고점 ★ + "최고점 대비" 한 줄.
-// 기간 = 3개월·6개월·1년·전체(지금까지) 또는 연도별 페이지(2026-11-13 채택), 계단형 선(이벤트 사이에 허구의 변화를 그리지 않는다). 블라인드면 Y축이 %.
+// 기간 = 연도별 페이지 하나(2026-11-14 — 3개월·6개월·1년·전체 칩은 없앴다), 계단형 선(이벤트 사이에 허구의 변화를 그리지 않는다). 블라인드면 Y축이 %.
 import { ChevronLeft, ChevronRight, LineChart as LineIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Area, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
@@ -16,15 +16,6 @@ import { percent, signedWon, won, wonCompact } from '../../ui/format'
 import { useBlind, useLocalStorage } from '../../ui/hooks'
 
 type Mode = 'total' | 'pnl'
-/** 기간 — 숫자 = 최근 N개월, 0 = 전체, 'year' = 연도별 페이지 */
-type Range = 3 | 6 | 12 | 0 | 'year'
-const RANGES: { value: Range; label: string }[] = [
-  { value: 3, label: '3개월' },
-  { value: 6, label: '6개월' },
-  { value: 12, label: '1년' },
-  { value: 0, label: '전체' },
-  { value: 'year', label: '연도별' },
-]
 const TOTAL_COLOR = '#3d5470'
 
 interface PagePoint {
@@ -113,7 +104,6 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   const minYear = new Date(sorted[0].date).getFullYear()
   const maxYear = Math.max(thisYear, new Date(sorted.at(-1)!.date).getFullYear())
   const [year, setYear] = useState(maxYear)
-  const [range, setRange] = useLocalStorage<Range>('assetTrendRange', 'year')
 
   // 블라인드 % 기준 — 총자산 보기 = 첫 기록 총자산(시작점 100%), 누적손익 보기 = 그 시점 순입금액.
   const blindBase = pointAssets(sorted[0]) > 0 ? pointAssets(sorted[0]) : (sorted.map(pointAssets).find((v) => v > 0) ?? 1)
@@ -129,15 +119,9 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   }
 
   // 그해 페이지 — 전년도에서 이어지면 연초부터, 그해 처음 시작하면 첫 이벤트부터(가짜 0원 시작점 없음).
-  const today = new Date()
-  const start =
-    range === 'year'
-      ? new Date(year, 0, 1).getTime()
-      : range === 0
-        ? new Date(new Date(sorted[0].date).getFullYear(), new Date(sorted[0].date).getMonth(), 1).getTime()
-        : new Date(today.getFullYear(), today.getMonth() - range, today.getDate()).getTime()
-  const end = range === 'year' ? new Date(year + 1, 0, 1).getTime() : Date.now()
-  const right = range !== 'year' || year >= thisYear ? Math.min(Date.now(), end) : end
+  const start = new Date(year, 0, 1).getTime()
+  const end = new Date(year + 1, 0, 1).getTime()
+  const right = year >= thisYear ? Math.min(Date.now(), end) : end
   const before = [...sorted].reverse().find((p) => p.date < start)
   const points: PagePoint[] = []
   if (before) points.push({ t: start, balance: pointAssets(before), principal: before.netContributions })
@@ -221,14 +205,6 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
   return (
     <div className="stack-tight">
       <Segmented options={[{ value: 'total', label: '총자산' }, { value: 'pnl', label: '누적손익' }]} value={mode} onChange={setMode} label="그래프 보기" />
-      <div className="chips">
-        {RANGES.map((r) => (
-          <button key={String(r.value)} type="button" className={`chip ${range === r.value ? 'on' : ''}`} aria-pressed={range === r.value} onClick={() => setRange(r.value)}>
-            {r.label}
-          </button>
-        ))}
-      </div>
-      {range === 'year' && (
       <div className="row-between">
         <button type="button" className="icon-button tone-gold" aria-label="이전 해" disabled={year <= minYear} onClick={() => setYear((y) => y - 1)}>
           <ChevronLeft size={20} />
@@ -238,10 +214,9 @@ function TrendChart({ timeline }: { timeline: AssetTimelinePoint[] }) {
           <ChevronRight size={20} />
         </button>
       </div>
-      )}
       <div className="chart" style={{ height: 240 }}>
         {rows.length === 0 ? (
-          <p className="empty">{range === 'year' ? '이 해엔 기록이 없어요' : '이 기간엔 기록이 없어요'}</p>
+          <p className="empty">이 해엔 기록이 없어요</p>
         ) : (
           <ResponsiveContainer>
             <ComposedChart data={rows} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
