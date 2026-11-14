@@ -77,7 +77,7 @@ export function ChecklistCard({ onOpen }: { onOpen: () => void }) {
             <StatCell label="최대 손실" value={percentOrDash(b.maxLoss)} tone={stubborn || blockBeyondWarn(b) ? 'orange' : 'blue'} />
 
             <StatCell label="손익비" value={ratioText(b)} />
-            <StatCell label="조정 손익비" value={adjustedText(b)} tone={adjustedTone(b)} arrow={arrowOf(dev.adjusted)} />
+            <StatCell label="조정 손익비" value={adjustedText(b)} tone={adjustedTone(b)} arrow={arrowOf(dev.adjusted)} highlight />
             <StatCell label={beyondLabel(limit)} value={beyondText(b)} tone={blockBeyondWarn(b) ? 'orange' : 'default'} compact />
 
             <StatCell label="수익 보유" value={days(b.avgWinHoldDays)} />

@@ -6,12 +6,12 @@ import { useJournal } from '../../state/journal'
 import { useSheets } from '../../state/sheets'
 import { Card, SectionHeader, Text } from '../../ui/components'
 import { useLocalStorage } from '../../ui/hooks'
-import { Alert } from '../../ui/Sheet'
 import { cardOrder } from './cardOrder'
 import { ChecklistCard } from './Checklist'
 import { HoldingsCard } from './HoldingsCard'
 import { PortfolioCard } from './PortfolioCard'
 import { ReturnDistributionCard } from './ReturnDistributionCard'
+import { TierEventModal } from './TierArt'
 import { TierCard } from './TierCard'
 import { TierReviewCard } from './TierReviewCard'
 import { TrendCard } from './TrendCard'
@@ -63,29 +63,31 @@ export function HomeScreen({ onOpenChecklist }: { onOpenChecklist: () => void })
         ),
       )}
 
-      {notice.alert && <Alert title={notice.alert.title} message={notice.alert.message} actions={[{ label: '확인', primary: true, onSelect: notice.dismiss }]} />}
+      {notice.alert && <TierEventModal kind={notice.alert.kind} tier={notice.alert.tier} title={notice.alert.title} message={notice.alert.message} onClose={notice.dismiss} />}
     </div>
   )
 }
 
 /**
- * 경지 변화 알림 — 지난번보다 경지가 오르면 축하, 내려가면(강등) 한 번, 주화입마가 리스크 제한 단계(주화·입마·퇴보)로
- * 더 나빠진 순간 한 번. 반복 배너가 아니라 그 순간의 사건 알림(기기별로 마지막 본 상태를 기억).
+ * 경지 변화 알림 — 지난번보다 경지가 오르면 축하(금빛 낙관 연출), 내려가면(강등) 한 번, 주화입마가 리스크 제한 단계(주화·입마·퇴보)로
+ * 더 나빠진 순간 한 번(주황 낙관이 흔들리는 연출). 반복 배너가 아니라 그 순간의 사건 알림(기기별로 마지막 본 상태를 기억).
  */
 function useTierNotice() {
   const { data, snapshot } = useJournal()
   const result = snapshot.grading
   const [lastTier, setLastTier] = useLocalStorage('lastSeenTier', BEOMIN)
   const [lastSeverity, setLastSeverity] = useLocalStorage('lastSeenJuhwaipmaSeverity', 0)
-  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null)
+  const [alert, setAlert] = useState<{ kind: 'up' | 'warn'; tier: number; title: string; message: string } | null>(null)
   const tier = result.currentTier
   const severity = phaseSeverity(result.juhwaipma)
 
   useEffect(() => {
     if (tier > lastTier) {
-      setAlert({ title: `${tierName(tier)} 경지에 올랐어요!`, message: '총자산과 최근 성과(조정 손익비·손익비·손실 통제)가 다음 경지 기준을 겹치지 않는 20건 구간마다 넘었어요.' })
+      setAlert({ kind: 'up', tier, title: `${tierName(tier)} 경지에 올랐어요!`, message: '총자산과 최근 성과(조정 손익비·손익비·손실 통제)가 다음 경지 기준을 겹치지 않는 20건 구간마다 넘었어요.' })
     } else if (tier < lastTier && tier > BEOMIN) {
       setAlert({
+        kind: 'warn',
+        tier,
         title: `${tierName(tier)}(으)로 강등됐어요`,
         message:
           severity === 4
@@ -96,6 +98,8 @@ function useTierNotice() {
       const base = data.settings.defaultRiskPercent
       const lock = lockedRiskPercent(result.juhwaipma, base)
       setAlert({
+        kind: 'warn',
+        tier,
         title: phaseStatusText(result.juhwaipma),
         message: `최근 20건·10건 기대손익이 계속 마이너스예요. 평소 리스크율 ${base}%가 최대 ${lock ?? '-'}%로 제한돼요 — 운기조식(5회 연속 플러스)으로 풀려요.`,
       })

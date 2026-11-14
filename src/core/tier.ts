@@ -19,6 +19,15 @@ export const IRYU = 2
 
 export const tierName = (tier: SkillTier): string => TIERS[tier] ?? ''
 
+/** 경지 한자 — 경지 카드의 큰 한자·죽간 띠·낙관, 승급·주화입마 연출에 쓴다(TIERS와 같은 순서). */
+export const TIER_HANJA = ['凡人', '三流', '二流', '一流', '絶頂', '超絶頂', '化境', '玄境', '生死境'] as const
+
+/** 낙관용 두 줄 — 2글자는 한 글자씩, 3글자는 앞 두 글자 + 마지막 글자(超絶/頂). */
+export function hanjaLines(tier: SkillTier): [string, string] {
+  const h: string = TIER_HANJA[tier] ?? ''
+  return h.length === 3 ? [h.slice(0, 2), h.slice(2)] : [h.slice(0, 1), h.slice(1)]
+}
+
 export interface TierRequirements {
   minTotalAssets: number | null
   /** 조정 손익비 하한 */

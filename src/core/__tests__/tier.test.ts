@@ -4,11 +4,14 @@ import {
   BEOMIN,
   IRYU,
   SAMRYU,
+  TIERS,
+  TIER_HANJA,
   WINDOW_SIZE,
   adjustedRatioOf,
   assetCeiling,
   evaluate,
   evaluateClosedPositions,
+  hanjaLines,
   losingStreak,
   lockedRiskPercent,
   nextStepHint,
@@ -259,5 +262,16 @@ describe('경지 연속 횟수는 매도 1회당 한 번', () => {
     const sellAll = makeSell({ tradeId: 'm', date: day(40), qty: 4, price: 90, lots })
     const multi = new TradePosition('m', '종목', lots, [sellAll])
     expect(evaluateClosedPositions([...singles, multi], 30_000_000).juhwaipma).toEqual({ kind: 'yeokryu', miss: 2 })
+  })
+})
+
+describe('경지 한자(낙관·죽간 띠)', () => {
+  it('경지와 같은 개수·순서, 낙관은 두 줄(3글자는 앞 두 글자 + 마지막)', () => {
+    expect(TIER_HANJA.length).toBe(TIERS.length)
+    expect(TIER_HANJA[IRYU]).toBe('二流')
+    expect(hanjaLines(IRYU)).toEqual(['二', '流'])
+    expect(hanjaLines(5)).toEqual(['超絶', '頂'])
+    expect(hanjaLines(8)).toEqual(['生死', '境'])
+    expect(hanjaLines(99)).toEqual(['', ''])
   })
 })
