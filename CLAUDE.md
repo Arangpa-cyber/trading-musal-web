@@ -120,7 +120,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   `PortfolioCard`(iOS 파이 그대로 — SVG + `pieLayout.ts`(iOS PieChartLayout 이식: 안쪽 두 줄 라벨/바깥 지시선 라벨, 겹침 밀어내기, 교차 없는
   계단 기둥, 1% 미만은 누를 때만, 글자 폭은 canvas로 재고 가운데 "…"), 통화 노출 막대), `TrendCard`(총자산|누적손익 세그먼트 =
   localStorage `assetTrendMode`, **연도별 페이지만**(‹ 2026년 › — 3개월·6개월·1년·전체 칩은 2026-11-14 삭제), 계단선 stepAfter, ▲▼★, 최고점 대비, 총자산 숫자 누르면 설정 환율).
-  수익분포 막대를 누르면 그 구간 거래 목록 → 누르면 그 매도 카드로(`TradeOutcome.sellId` → `showRecord`). 카드 순서 = `settings.homeCardOrder`(iOS 백업 키와 같음 + 새 키 `tierReview`(승급 심사, 기본 맨 위),
+  수익분포 막대를 누르면 그 구간 거래 목록 → 누르면 그 매도 카드로(`TradeOutcome.sellId` → `showRecord`). 카드 순서 = `settings.homeCardOrder`(iOS 백업 키와 같음 + 새 키 `tierReview`(승급 심사) — **기본 순서: 수익 분포 → 총자산 추이 → 확인표 → 승급 심사 → 포트폴리오 구성 → 보유 자산**, 순서를 이미 저장한 계정엔 새 카드가 맨 앞에 붙는다(`cardOrder`),
   `cardOrder.ts`), 설정 "현황 카드 순서 바꾸기"(`settings/CardOrderSheet` — iOS처럼 ≡ 손잡이로 끌기, 놓으면 저장). ⚠️ Recharts 라벨 함수는 index 대신 `payload`를 쓴다(종목이 빠진 직후 index가 옛 목록을 가리켜 오류).
 - `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
 
@@ -231,9 +231,9 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
   `screens/home/TierArt.tsx`; `prefers-reduced-motion`이면 정지). 사건 알림은 기기별 `lastSeenTier`·`lastSeenJuhwaipmaSeverity`로 한 번만.
 - **현황 카드 3종**(시간 단위가 다르다 — 한 카드 = 한 기준): 경지 = **통산** 성적표(승률·평균수익률·평균손실률 / 손익비·조정 손익비(둘 다 소수 1자리 "2.3")·기준(-10%) 넘은 손실 /
   수익·손실 보유 평균·완료 거래, 누적수익률·연환산수익률은 총자산 추이 카드), 승급 심사 = **최근 20건 구간**(주화입마 패널·막힌 조건 게이지·증거 구간 ✓✗·
-  유지 심사·자산 여유, 범인이면 숨김), 확인표 = **달력 기간**(승률·평균수익률·평균손실률 / 손절가대비·최대 수익·최대 손실 / 손익비·조정 손익비·기준 넘은 손실 /
+  유지 심사·자산 여유. **범인(완료 20건 미만)이면 삼류까지 완료 거래 N/20 진행 바** — 경지 카드엔 진행 바를 두지 않는다), 확인표 = **달력 기간**(승률·평균수익률·평균손실률 / 손절가대비·최대 수익·최대 손실 / 손익비·조정 손익비·기준 넘은 손실 /
   수익·손실 보유·거래 + 통산 대비 값 옆 작은 ▲▼(칸은 모두 라벨·값 2줄, 표본 적음 표시 없음) + 점검 한 줄, 평균 손실 7% 초과 주황). 확인표 상세 표·YTD·통산 요약은 같은 항목을 모두 보여 준다.
-- 개발용 시나리오: 미리보기 주소에 `&tier=juhwa`(연패) / `&tier=rich`(입금 증가) / `&tier=both` — `node scripts/shot.mjs "&tier=both#/home" /tmp/x.png`.
+- 개발용 시나리오: 미리보기 주소에 `&tier=juhwa`(연패) / `&tier=rich`(입금 증가) / `&tier=both` / `&tier=beomin`(완료 12건) / `&order=old`(예전 카드 순서 저장) — `node scripts/shot.mjs "&tier=both#/home" /tmp/x.png`.
   (shot.mjs는 `lastSeenTier=1`이라 승급 알림이 뜬다 — 패널을 보려면 localStorage `lastSeenTier`·`lastSeenJuhwaipmaSeverity`를 맞춰 찍는다.)
 
 ## 백업·데이터

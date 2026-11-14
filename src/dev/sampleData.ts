@@ -26,7 +26,8 @@ function sell(b: Buy[], day: number, price: number, extra: Partial<Sell> = {}): 
 
 export function sampleData(): JournalData {
   n = 0
-  // ?tier=juhwa — 연패를 덧붙여 주화입마 패널 확인 / ?tier=rich — 입금을 늘려 총자산 조건을 넘긴 모양 / ?tier=both — 둘 다.
+  // ?tier=juhwa — 연패를 덧붙여 주화입마 패널 확인 / ?tier=rich — 입금을 늘려 총자산 조건을 넘긴 모양 / ?tier=both — 둘 다 / ?tier=beomin — 완료 거래 12건(범인).
+  // ?order=old — 카드 순서를 예전 방식으로 저장해 둔 계정(새 카드가 어디 붙는지 확인).
   const scenario = new URLSearchParams(window.location.search).get('tier')
   const cash: CashTx[] = [
     { id: id(), date: start - DAY, type: 'deposit', amount: scenario === 'rich' || scenario === 'both' ? 150_000_000 : 20_000_000, memo: '', currency: 'KRW', foreignAmount: 0, direction: null },
@@ -37,6 +38,7 @@ export function sampleData(): JournalData {
   // 지난 완료 거래 22건 — 승/패 섞어서(경지 삼류 이상이 나오게)
   const results = [12, -4, 18, -5, 7, -3, 25, -6, -4, 9, -5, 15, -3, -6, 11, -4, 20, -5, 8, -3, -7, 14]
   if (scenario === 'juhwa' || scenario === 'both') results.push(...Array(13).fill(-5))
+  if (scenario === 'beomin') results.length = 12
   results.forEach((r, i) => {
     const b = buy(`t${i}`, i * 4, ['한미반도체', '알테오젠', 'HD현대일렉트릭', '삼양식품'][i % 4], 10, 100_000, 93_000)
     buys.push(b)
@@ -62,5 +64,5 @@ export function sampleData(): JournalData {
       buys.push(buy(`many${i}`, 170 + i, name, 10, price, price * 0.9))
     }
   }
-  return { buys, sells, cash, journals: [], profile: { nickname: '무명 검객', tradingRules: '', createdAt: start }, settings: DEFAULT_SETTINGS }
+  return { buys, sells, cash, journals: [], profile: { nickname: '무명 검객', tradingRules: '', createdAt: start }, settings: { ...DEFAULT_SETTINGS, homeCardOrder: new URLSearchParams(window.location.search).get('order') === 'old' ? 'holdings,portfolio,returnDistribution,trend,checklist' : null } }
 }

@@ -1,9 +1,9 @@
 // 경지 카드 — 지금까지 모든 거래의 통산 성적표: 경지 히어로(큰 한자·낙관)·죽간 띠 + 통산 지표 9칸(조정 손익비는 금색 띠). 주화입마 알약만 곁들인다
-// (자세한 상태·승급 조건은 승급 심사 카드). 누적수익률은 총자산 추이 카드에 있다.
+// (완료 거래 진행·승급 조건·주화입마 상태는 승급 심사 카드). 누적수익률은 총자산 추이 카드에 있다.
 import { Trophy } from 'lucide-react'
 import { blockAvgLossWarn, blockBeyondWarn, blockHoldWarning, phaseSeverity, summarize, type JuhwaipmaPhase } from '../../core'
 import { useJournal } from '../../state/journal'
-import { Card, Gauge, Pill, SectionHeader, StatCell, Text } from '../../ui/components'
+import { Card, Pill, SectionHeader, StatCell } from '../../ui/components'
 import { percent, percentOrDash } from '../../ui/format'
 import { adjustedText, adjustedTone, beyondLabel, beyondText, days, ratioText } from './Checklist'
 import { TierHero, TierSlips } from './TierArt'
@@ -25,17 +25,6 @@ export function TierCard() {
       />
       <TierHero tier={result.currentTier} />
       <TierSlips tier={result.currentTier} />
-
-      {result.beominProgress && (
-        <div className="stack-tight">
-          <Gauge
-            label="완료 거래"
-            progress={result.beominProgress.closed / Math.max(result.beominProgress.needed, 1)}
-            valueText={`${result.beominProgress.closed}건 / ${result.beominProgress.needed}건`}
-          />
-          <Text tone="muted" size="small">20건이 쌓이면 삼류로 정식 경지가 시작돼요.</Text>
-        </div>
-      )}
 
       <div className="stat-grid">
         <StatCell label="승률" value={all.count ? percent(all.winRate) : '-'} />

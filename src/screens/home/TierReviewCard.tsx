@@ -1,5 +1,5 @@
 // 승급 심사 카드 — 경지 판정의 근거(최근 20건 구간 기준): 주화입마 상태·승급 조건·증거 구간·유지 심사·자산 여유.
-// 경지 카드는 통산 성적표이고, 이 카드는 "지금 승급·강등·리스크 제한이 어떻게 되고 있나"를 보여 준다. 범인이면 숨긴다.
+// 경지 카드는 통산 성적표이고, 이 카드는 "지금 승급·강등·리스크 제한이 어떻게 되고 있나"를 보여 준다. 범인(완료 20건 미만)이면 삼류까지 완료 거래 진행 바.
 import { AlertTriangle, Target } from 'lucide-react'
 import {
   assetCeiling,
@@ -32,8 +32,24 @@ export function TierReviewCard() {
   const { data, snapshot: s } = useJournal()
   const [blind] = useBlind()
   const g = s.grading
-  if (g.currentTier === BEOMIN) return null
   const base = data.settings.defaultRiskPercent
+  if (g.currentTier === BEOMIN) {
+    // 범인 — 20건이 쌓이기 전엔 승급 조건·주화입마가 없다. 삼류까지 완료 거래 진행만(연패 안내는 그대로).
+    const p = g.beominProgress
+    return (
+      <Card>
+        <SectionHeader title="승급 심사" icon={Target} trailing={<Text tone="muted" size="tiny">완료 거래 기준</Text>} />
+        <PhasePanel phase={g.juhwaipma} tier={g.currentTier} streak={g.losingStreak} totalAssets={s.totalAssets} base={base} blind={blind} />
+        {p && (
+          <div className="stack-tight">
+            <Text bold>삼류까지</Text>
+            <Gauge label="완료 거래" progress={p.closed / Math.max(p.needed, 1)} valueText={`${p.closed}건 / ${p.needed}건`} />
+            <Text tone="muted" size="small">20건이 쌓이면 삼류로 정식 경지가 시작돼요. 그전에는 승급 조건과 주화입마가 없어요.</Text>
+          </div>
+        )}
+      </Card>
+    )
+  }
   const paused = phaseSeverity(g.juhwaipma) >= 2
   return (
     <Card>
