@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>개인정보 처리방침 — 트레이딩:무살</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png" />
+    <meta name="theme-color" content="#faf6ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <style>
+      :root {
+        --paper: #faf6ef;
+        --group: #ffffff;
+        --text: #1c1c1e;
+        --muted: #6e6e73;
+        --hairline: rgba(60, 60, 67, 0.18);
+        --accent: #007aff;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #121212;
+          --group: #1c1c1e;
+          --text: #f2f2f7;
+          --muted: #98989f;
+          --hairline: rgba(84, 84, 88, 0.6);
+          --accent: #0a84ff;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+        line-height: 1.65;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+      header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+      header img { border-radius: 10px; }
+      h1 { font-size: 1.5rem; margin: 0; }
+      .muted { color: var(--muted); font-size: 0.9rem; }
+      section {
+        background: var(--group);
+        border: 1px solid var(--hairline);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-top: 14px;
+      }
+      h2 { font-size: 1.05rem; margin: 0 0 6px; }
+      p, ul { margin: 6px 0; }
+      ul { padding-left: 1.2em; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="icons/icon-192.png" alt="" width="44" height="44" />
+        <div>
+          <h1>개인정보 처리방침</h1>
+          <div class="muted">트레이딩:무살 (트레이딩: 무림에서 살아남기)</div>
+        </div>
+      </header>
+      <p class="muted">시행일 2026년 11월 13일</p>
+      <p>
+        트레이딩:무살(이하 "서비스")은 개인 트레이딩 기록을 남기고 실력을 돌아보는 웹앱이에요. 운영자 Arangpa는 서비스를 쓰는 분의
+        개인정보를 아래처럼 다뤄요.
+      </p>
+
+      <section>
+        <h2>1. 모으는 정보</h2>
+        <ul>
+          <li><b>구글 로그인 정보</b> — 구글 계정 이메일, 이름, 프로필 사진 주소, 구글 계정 식별값. 구글로 로그인할 때 구글이 보내 줘요.</li>
+          <li><b>직접 입력한 기록</b> — 매수·매도·예수금(입출금·환전·배당 등) 기록, 메모, 별호와 원칙, 설정값(매매 기본값·경고 기준·수수료율·환율 등).</li>
+          <li><b>로그인 유지 정보</b> — 로그인 상태를 유지하기 위한 세션 정보.</li>
+        </ul>
+        <p>주민등록번호, 증권 계좌번호, 증권사 비밀번호 같은 정보는 받지 않아요. 기록에 이런 정보를 적지 말아 주세요.</p>
+      </section>
+
+      <section>
+        <h2>2. 쓰는 목적</h2>
+        <ul>
+          <li>로그인하고, 내 기록을 저장해서 PC·폰 어디서든 같은 기록을 보여 주기 위해서</li>
+          <li>입력한 기록으로 총자산·수익률·경지 같은 값을 계산해 보여 주기 위해서</li>
+        </ul>
+        <p>광고, 마케팅, 분석 도구(추적 쿠키 등)에는 쓰지 않아요. 기록을 다른 사람이나 회사에 팔거나 넘기지 않아요.</p>
+      </section>
+
+      <section>
+        <h2>3. 저장 위치와 맡기는 곳</h2>
+        <p>서비스는 직접 서버를 두지 않고 아래 업체의 서비스를 써요. 이 업체들은 서비스 운영에 필요한 범위에서만 정보를 처리해요.</p>
+        <ul>
+          <li><b>Supabase</b> — 로그인과 기록 저장(데이터베이스). 저장 위치: 대한민국 서울 리전.</li>
+          <li><b>Google</b> — 구글 계정 로그인, 첫 화면 글꼴(Google Fonts) 불러오기. 글꼴을 불러올 때 접속 기기의 IP 주소가 구글에 전달돼요.</li>
+          <li><b>GitHub Pages</b> — 웹앱 파일 전달(호스팅). 접속 기록(IP 주소 등)이 GitHub에 남을 수 있어요.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 누가 볼 수 있나요</h2>
+        <p>
+          데이터베이스는 "본인 기록만" 읽고 쓸 수 있게 막혀 있어서, 다른 사용자는 내 기록을 볼 수 없어요. 운영자는 장애 대응이나 문의 처리처럼
+          꼭 필요할 때가 아니면 기록을 열람하지 않아요.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. 보관 기간과 지우기</h2>
+        <ul>
+          <li>기록은 직접 지우거나 탈퇴할 때까지 보관해요.</li>
+          <li><b>데이터 초기화</b>(설정 → 초기화) — 매매·예수금 기록, 메모, 별호·원칙을 지워요. 로그인 계정과 설정값은 남아요.</li>
+          <li><b>회원 탈퇴</b>(설정 → 계정 → 회원 탈퇴) — 로그인 계정과 모든 기록·설정을 바로 지워요. 되돌릴 수 없어요.</li>
+          <li>지운 정보는 업체의 시스템 백업에 잠시 남았다가 그 업체의 보관 주기에 따라 사라질 수 있어요.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 내 정보에 대한 권리</h2>
+        <ul>
+          <li>보기·고치기 — 앱 화면에서 언제든 보고 고칠 수 있어요.</li>
+          <li>내려받기 — 설정 → 데이터 백업 → 백업 내보내기로 모든 기록을 파일로 받을 수 있어요.</li>
+          <li>지우기 — 데이터 초기화나 회원 탈퇴로 지울 수 있어요.</li>
+          <li>구글 계정 연결 끊기 — 구글 계정 설정의 "타사 앱 및 서비스"에서도 연결을 끊을 수 있어요.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 기기에 저장하는 정보</h2>
+        <p>
+          블라인드 모드, 차트 보기 방식, 마지막 백업 날짜 같은 화면 설정과 로그인 세션은 브라우저 저장소(localStorage)에 저장돼요. 이 기기에만
+          남고, 브라우저 데이터를 지우면 사라져요. 광고·추적용 쿠키는 쓰지 않아요.
+        </p>
+      </section>
+
+      <section>
+        <h2>8. 문의와 운영자</h2>
+        <ul>
+          <li>운영자: Arangpa</li>
+          <li>연락처: <a href="mailto:arangpa86@gmail.com">arangpa86@gmail.com</a></li>
+        </ul>
+        <p>개인정보 관련 문의, 기록 열람·삭제 요청은 위 이메일로 보내 주세요.</p>
+      </section>
+
+      <section>
+        <h2>9. 방침이 바뀌면</h2>
+        <p>이 방침을 바꾸면 이 페이지에 시행일과 함께 알려요.</p>
+      </section>
+
+      <p class="muted" style="margin-top: 20px"><a href="./">트레이딩:무살로 돌아가기</a></p>
+    </main>
+  </body>
+</html>
