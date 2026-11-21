@@ -3,6 +3,7 @@
 // 조각을 누르면 튀어나온다(다시 누르면 들어감). 달러가 있으면 아래 통화 노출 막대.
 import { PieChart as PieIcon } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
+import { positionValueKRW, usdCashValueKRW } from '../../core'
 import { useJournal } from '../../state/journal'
 import { Blind, Card, SectionHeader } from '../../ui/components'
 import { dollar, won } from '../../ui/format'
@@ -76,9 +77,9 @@ export function PortfolioCard() {
 
   const cash = snapshot.cash
   const slices = useMemo<PieSlice[]>(() => {
-    const items = snapshot.openPositions.map((p) => ({ name: p.assetName, amount: p.positionCost }))
+    const items = snapshot.openPositions.map((p) => ({ name: p.assetName, amount: positionValueKRW(p, snapshot.valueRate) }))
     // 예수금은 통화와 무관하게 한 조각(원화/달러 비중은 아래 통화 막대가 맡는다).
-    const cashTotal = Math.max(cash.krw, 0) + Math.max(cash.usdBookKRW, 0)
+    const cashTotal = Math.max(cash.krw, 0) + Math.max(usdCashValueKRW(cash, snapshot.valueRate), 0)
     if (cashTotal > 0) items.push({ name: '예수금', amount: cashTotal })
     const total = items.reduce((a, x) => a + x.amount, 0)
     if (total <= 0) return []
@@ -104,9 +105,9 @@ export function PortfolioCard() {
     else setSelected((cur) => (hit && cur !== hit.id ? hit.id : null))
   }
 
-  // 통화 노출 — 총자산 공식과 같은 기준(보유는 원화 매수원가, 달러 예수금은 장부가).
-  const usd = snapshot.openPositions.filter((p) => p.isForeign).reduce((a, p) => a + p.positionCost, 0) + Math.max(cash.usdBookKRW, 0)
-  const krw = snapshot.openPositions.filter((p) => !p.isForeign).reduce((a, p) => a + p.positionCost, 0) + Math.max(cash.krw, 0)
+  // 통화 노출 — 총자산 공식과 같은 기준(현재 환율 환산).
+  const usd = snapshot.openPositions.filter((p) => p.isForeign).reduce((a, p) => a + positionValueKRW(p, snapshot.valueRate), 0) + Math.max(usdCashValueKRW(cash, snapshot.valueRate), 0)
+  const krw = snapshot.openPositions.filter((p) => !p.isForeign).reduce((a, p) => a + positionValueKRW(p, snapshot.valueRate), 0) + Math.max(cash.krw, 0)
   const exposure = usd > 0 && usd + krw > 0 ? { krw: (krw / (usd + krw)) * 100, usd: (usd / (usd + krw)) * 100 } : null
 
   return (

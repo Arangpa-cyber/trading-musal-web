@@ -106,7 +106,7 @@ export function SettingsScreen({ email, onOpenGuide }: { email: string | undefin
 
       <Group
         title="환율"
-        footer={'지금 시장 환율의 참고값이에요. 총자산엔 안 들어가고(달러 예수금은 평균 매입 환율 원가로 계산), 현황의 "미실현 환차"와 달러 예수금이 없을 때의 달러 매수 계획 환산에만 써요. 직접 입력값과 마지막 환전 환율 중 더 최근 것이 적용돼요.'}
+        footer={'지금 시장 환율이에요. 앱을 열 때 하루 한 번 자동으로 가져와요(직접 입력도 돼요). 현황의 총자산·비중에서 달러 예수금과 달러 종목 매수원가를 이 환율로 환산하고, "미실현 환차"에도 써요. 과거 기록 시점의 총자산·경지 판정은 그대로예요. 직접 입력값·자동값과 마지막 환전 환율 중 더 최근 것이 적용돼요.'}
       >
         <button type="button" className="group-row" onClick={() => setSheet('fx')}>
           <span>설정 환율 (1$)</span>

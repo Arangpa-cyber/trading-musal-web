@@ -35,6 +35,9 @@ export function TrendCard() {
   const s = snapshot
   const pnl = s.totalAssets - s.netContributions
   const unrealized = s.cash.unrealizedFx(s.fxRate?.rate)
+  // 마지막 점만 현재 환율 기준 총자산으로 맞춘다(과거 점은 기록 당시 장부 기준 그대로).
+  const fxGap = s.totalAssets - s.bookTotalAssets
+  const timeline = s.timeline.map((p, i, all) => (i === all.length - 1 && fxGap !== 0 ? { ...p, cashAmount: p.cashAmount + fxGap } : p))
   return (
     <Card>
       <SectionHeader title="총자산 추이" icon={LineIcon} />
@@ -65,13 +68,13 @@ export function TrendCard() {
             <>
               <span className="muted"> / 미실현 </span>
               <Text tone={unrealized >= 0 ? 'red' : 'blue'}>{blind ? '•••' : signedWon(unrealized)}</Text>
-              <span className="muted"> (현재 환율)</span>
+              <span className="muted"> (현재 환율 · 총자산에 반영됨)</span>
             </>
           )}
         </div>
       )}
       {s.netContributions > 0 && s.totalAssets > 0 && <CompositionBar total={s.totalAssets} principal={s.netContributions} />}
-      {s.timeline.length > 0 ? <TrendChart timeline={s.timeline} /> : <Text tone="muted" size="small">입금·매수·매도 기록이 쌓이면 추이가 표시돼요.</Text>}
+      {timeline.length > 0 ? <TrendChart timeline={timeline} /> : <Text tone="muted" size="small">입금·매수·매도 기록이 쌓이면 추이가 표시돼요.</Text>}
     </Card>
   )
 }

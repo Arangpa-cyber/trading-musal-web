@@ -2,6 +2,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JournalData } from '../core'
+import { fetchUsdKrw, isSameLocalDay } from '../data/fxFetch'
 import { loadJournal, persistChanges, removeRecords } from '../data/store'
 import { signOut } from '../data/useSession'
 import { errorMessage, importBackupFile } from '../state/backupActions'
@@ -28,6 +29,25 @@ export function JournalScreen({ session }: { session: Session }) {
   useEffect(() => {
     void reload()
   }, [reload, session.user.id])
+
+  // 환율 자동 갱신 — 프로필이 있고 오늘 아직 안 가져왔으면 한 번만(실패하면 조용히 건너뜀, 이 접속에서 다시 시도 안 함).
+  const fxTried = useRef(false)
+  useEffect(() => {
+    if (load.state !== 'ready' || !load.data.profile || fxTried.current) return
+    fxTried.current = true
+    const settings = load.data.settings
+    if (isSameLocalDay(settings.manualFxRateDate, Date.now())) return
+    void (async () => {
+      const rate = await fetchUsdKrw()
+      if (rate === null) return
+      try {
+        await persistChanges({ settings: { ...settings, manualFxRate: rate, manualFxRateDate: Date.now() } })
+        await reload()
+      } catch {
+        // 저장 실패는 다음 접속에서 다시
+      }
+    })()
+  }, [load, reload])
 
   const persist = useCallback(
     async (changes: Changes) => {

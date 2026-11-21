@@ -95,20 +95,35 @@ describe('이중통화(원화 장부)', () => {
     expect(close(after.totalAssets, before.totalAssets - 4.79 * rate, 0.01)).toBe(true)
   })
 
-  it('설정 환율을 바꿔도 총자산·경지는 그대로다', () => {
+  it('설정 환율은 현재 총자산(달러 예수금)에만 반영되고 과거 시점·경지는 그대로다', () => {
     const rate = 6_524_651 / 4804.19
     const buy = makeBuy({ tradeId: 'spx', qty: 30, price: 159.95, fee: 5.69, currency: 'USD', rate, totalAssets: 10_000_000 })
     const sell = makeSell({ tradeId: 'spx', date: day(1), qty: 30, price: 175, currency: 'USD', rate: 1380 })
     const deposit = makeCash('deposit', 10_000_000)
     const low = makeSnapshot([buy], [sell], [deposit], { rate: 1300, date: 0, source: 'manual' })
     const high = makeSnapshot([buy], [sell], [deposit], { rate: 1500, date: 0, source: 'manual' })
-    expect(close(high.totalAssets, low.totalAssets, 0.01)).toBe(true)
+    // 현재 총자산 = 달러 예수금 × 설정 환율이라 환율 차이만큼 벌어진다.
+    expect(close(high.totalAssets - low.totalAssets, high.cash.usd * 200, 0.01)).toBe(true)
+    // 장부 총자산·타임라인·경지는 환율과 무관.
+    expect(close(high.bookTotalAssets, low.bookTotalAssets, 0.01)).toBe(true)
     expect(high.grading.currentTier).toBe(low.grading.currentTier)
     expect(close(high.cash.unrealizedFx(1500)! - low.cash.unrealizedFx(1300)!, (175 * 30 - 4804.19) * 200, 0.01)).toBe(true)
     expect(close(assetsAt(Infinity, high.timeline), assetsAt(Infinity, low.timeline))).toBe(true)
     const split = new TradePosition('spx', 'x', [buy], [sell]).pnlSplit(sell)
     expect(close(split.trading + split.fx, 175 * 30 * 1380 - 4804.19 * rate, 0.01)).toBe(true)
     expect(close(cashBalances([], [buy], [sell]).usd, 175 * 30 - 4804.19)).toBe(true)
+  })
+
+  it('달러 종목 보유 원가도 현재 환율로 환산하고, 환율이 없으면 장부가 그대로다', () => {
+    const buy = makeBuy({ tradeId: 'a', qty: 10, price: 100, currency: 'USD', rate: 1300 })
+    const deposit = makeCash('deposit', 10_000_000)
+    const ex = exchange(1_300_000, 1000, day(0))
+    const none = makeSnapshot([buy], [], [deposit, ex], null)
+    expect(none.valueRate).toBeNull()
+    expect(close(none.totalAssets, none.bookTotalAssets)).toBe(true)
+    const at1400 = makeSnapshot([buy], [], [deposit, ex], { rate: 1400, date: 0, source: 'manual' })
+    // 원가 $1,000: 1,300원 → 1,400원으로 환산 = +100,000원.
+    expect(close(at1400.totalAssets - at1400.bookTotalAssets, 1000 * 100, 0.01)).toBe(true)
   })
 })
 
@@ -124,10 +139,10 @@ describe('달러 장부', () => {
     const s = DEFAULT_SETTINGS
     const before = buildSnapshot({ buys: [], sells: [], cash: [deposit, ...ex], settings: s })
     expect(close(before.cash.usdAverageRate, 1350)).toBe(true)
-    expect(close(before.totalAssets, 10_000_000)).toBe(true)
+    expect(close(before.bookTotalAssets, 10_000_000)).toBe(true)
     const after = buildSnapshot({ buys: [usdBuy(5, 200, day(2))], sells: [], cash: [deposit, ...ex], settings: s })
     expect(close(after.buys[0].rate, 1350)).toBe(true)
-    expect(close(after.totalAssets, 10_000_000, 0.01)).toBe(true)
+    expect(close(after.bookTotalAssets, 10_000_000, 0.01)).toBe(true)
     expect(close(after.cash.usdAverageRate, 1350)).toBe(true)
   })
 

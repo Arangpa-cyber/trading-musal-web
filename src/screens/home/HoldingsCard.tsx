@@ -16,13 +16,16 @@ import {
 import {
   BUY_REASON_LABEL,
   buyCostKRW,
+  buyValueKRW,
   defaultTradeDate,
   exceedsMaxWeight,
   holdingMemo,
   LONG_HOLD_WARN_DAYS,
+  positionValueKRW,
   tradingDays,
   type RatedBuy,
   type TradePosition,
+  usdCashValueKRW,
 } from '../../core'
 import type { OpenEntry } from '../../state/entry'
 import { useSheets, type SheetActions } from '../../state/sheets'
@@ -38,7 +41,7 @@ export function HoldingsCard() {
   const sheets = useSheets()
   const openEntry = sheets.openEntry
   const [blind] = useBlind()
-  const open = [...s.openPositions].sort((a, b) => b.positionCost - a.positionCost)
+  const open = [...s.openPositions].sort((a, b) => positionValueKRW(b, s.valueRate) - positionValueKRW(a, s.valueRate))
   const cash = s.cash
 
   // 총 오픈 리스크 — 보유 중인 매수 건이 각자 손절가에 닿으면 잃는 금액의 합 ÷ 총자산.
@@ -75,7 +78,7 @@ export function HoldingsCard() {
       <Menu items={cashItems} className="row-button" label="예수금 메뉴">
         <div className="row-between">
           <strong>예수금</strong>
-          <Pill text={weightText(s.totalAssets > 0 ? (cash.totalKRW / s.totalAssets) * 100 : 0)} tone="accent" prominent />
+          <Pill text={weightText(s.totalAssets > 0 ? ((cash.krw + usdCashValueKRW(cash, s.valueRate)) / s.totalAssets) * 100 : 0)} tone="accent" prominent />
         </div>
         <Blind text={won(cash.krw)} blind={blind} className="muted small block" />
         {cash.usd !== 0 && (
@@ -101,7 +104,7 @@ export function HoldingsCard() {
             <div key={p.id}>
               <hr />
               <Menu items={positionMenu(p, sheets)} className="row-button" label={`${p.assetName} 메뉴`}>
-                <PositionHeader position={p} totalAssets={s.totalAssets} maxWeight={data.settings.maxWeightPercent} blind={blind} memo={memo?.text} />
+                <PositionHeader position={p} rate={s.valueRate} totalAssets={s.totalAssets} maxWeight={data.settings.maxWeightPercent} blind={blind} memo={memo?.text} />
               </Menu>
               <div className="lots">
                 {lots.map((buy) => (
@@ -109,6 +112,7 @@ export function HoldingsCard() {
                     key={buy.id}
                     position={p}
                     buy={buy}
+                    rate={s.valueRate}
                     totalAssets={s.totalAssets}
                     maxStop={data.settings.maxStopLossPercent}
                     blind={blind}
@@ -139,18 +143,20 @@ function positionMenu(p: TradePosition, sheets: SheetActions): MenuItem[] {
 /** 종목 머리글 — 이름 · 합계 비중(최대 비중 넘으면 주황) · 합계 수량·평균단가·매수금액. */
 function PositionHeader({
   position: p,
+  rate,
   totalAssets,
   maxWeight,
   blind,
   memo,
 }: {
   position: TradePosition
+  rate: number | null
   totalAssets: number
   maxWeight: number
   blind: boolean
   memo?: string
 }) {
-  const weight = totalAssets > 0 ? (p.positionCost / totalAssets) * 100 : 0
+  const weight = totalAssets > 0 ? (positionValueKRW(p, rate) / totalAssets) * 100 : 0
   return (
     <div className="position-card">
       <div className="row-between">
@@ -179,6 +185,7 @@ function PositionHeader({
 function LotCard({
   position: p,
   buy,
+  rate,
   totalAssets,
   maxStop,
   blind,
@@ -187,6 +194,7 @@ function LotCard({
 }: {
   position: TradePosition
   buy: RatedBuy
+  rate: number | null
   totalAssets: number
   maxStop: number
   blind: boolean
@@ -197,7 +205,7 @@ function LotCard({
   // 보유일 = 거래일. 달러 종목의 "오늘"은 뉴욕 날짜.
   const today = defaultTradeDate(p.currency)
   const days = tradingDays(buy.date, today)
-  const weight = totalAssets > 0 ? (buyCostKRW(buy) / totalAssets) * 100 : 0
+  const weight = totalAssets > 0 ? (buyValueKRW(buy, rate) / totalAssets) * 100 : 0
   const items: MenuItem[] = [
     p.hasLegacySells
       ? { label: '전량 매도', detail: '옛 기록이라 전량만 팔 수 있어요', icon: ArrowDownCircle, onSelect: () => openEntry({ kind: 'sell', positionId: p.id }) }

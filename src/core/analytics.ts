@@ -1,7 +1,7 @@
 // 총자산·자산 추이·경지 판정 등 화면들이 같이 쓰는 값을 한 번에 계산한다.
 import { cashBalances, replayFx, resolveFxRate, resolveRates, type CashBalances, type ResolvedFxRate } from './fx'
 import { TradePosition, type TradeOutcome } from './position'
-import { buyAmountKRW, buyCashOutflow, buyFeeKRW, cashDelta, sellAmountKRW, sellCashInflow, sellFeeKRW, type RatedBuy, type RatedSell } from './records'
+import { buyAmountKRW, buyCashOutflow, buyCostNative, buyFeeKRW, cashDelta, sellAmountKRW, sellCashInflow, sellFeeKRW, type RatedBuy, type RatedSell } from './records'
 import { evaluate, type TierGradingResult } from './tier'
 import { DEFAULT_SETTINGS, type CashTx, type CashTxType, type JournalData, type Millis, type Settings } from './types'
 
@@ -179,9 +179,32 @@ export function timeWeightedReturnPercent(timeline: AssetTimelinePoint[]): numbe
 
 // MARK: 스냅샷
 
-/** 총자산(원) = 원화 예수금 + 보유 매수원가 + 달러 예수금 × 달러 평균 매입 환율. 설정 환율은 안 들어간다. */
-export function totalAssetsOf(open: TradePosition[], cash: CashBalances): number {
-  return cash.totalKRW + open.reduce((a, p) => a + p.positionCost, 0)
+/**
+ * 현재 환율로 본 보유 포지션 원화 가치 — 달러 종목 = 매수원가($) × 현재 환율(시가 아님), 원화 종목 = 원가 그대로.
+ * 환율이 없으면(rate null) 달러 종목도 매수 시점 원가 환율 장부가.
+ */
+export function positionValueKRW(p: TradePosition, rate: number | null | undefined): number {
+  if (p.isForeign && rate && rate > 0) return p.nativeAverageBuyPrice * p.remainingQuantity * rate
+  return p.positionCost
+}
+
+/** 매수 1건의 현재 환율 원화 가치(비중 계산용) — 달러 매수 = 매수원가($) × 현재 환율, 원화 매수 = 원가. */
+export function buyValueKRW(b: RatedBuy, rate: number | null | undefined): number {
+  return b.currency !== 'KRW' && rate && rate > 0 ? buyCostNative(b) * rate : buyCostNative(b) * b.rate
+}
+
+/** 달러 예수금의 원화 가치 — 현재 환율이 있으면 달러 × 현재 환율, 없으면 평균 매입 환율 장부가. */
+export function usdCashValueKRW(cash: CashBalances, rate: number | null | undefined): number {
+  return rate && rate > 0 ? cash.usd * rate : cash.usdBookKRW
+}
+
+/**
+ * 총자산(원, 지금 값) = 원화 예수금 + 달러 예수금 × 현재 환율 + 보유 매수원가(달러 종목은 × 현재 환율).
+ * 현재 환율이 없으면 기록 당시 장부가(평균 매입 환율·원가 환율). 과거 시점(타임라인·경지 판정·진입 시 총자산)은 환율 이력이
+ * 없어 장부 기준 그대로다.
+ */
+export function totalAssetsOf(open: TradePosition[], cash: CashBalances, rate: number | null | undefined = null): number {
+  return cash.krw + usdCashValueKRW(cash, rate) + open.reduce((a, p) => a + positionValueKRW(p, rate), 0)
 }
 
 /** 한 번의 계산으로 화면들이 공통으로 쓰는 값. */
@@ -195,7 +218,12 @@ export interface PortfolioSnapshot {
   outcomes: TradeOutcome[]
   cash: CashBalances
   fxRate: ResolvedFxRate | null
+  /** 지금 가치 환산에 쓴 환율(설정 환율). 없으면 null = 장부가. */
+  valueRate: number | null
+  /** 총자산 — 현재 환율 기준(달러 예수금·달러 종목 매수원가 환산). */
   totalAssets: number
+  /** 같은 시점의 장부 기준 총자산(평균 매입·원가 환율) — 총자산 추이 그래프의 기록 점과 같은 기준. */
+  bookTotalAssets: number
   netContributions: number
   cumulativeFees: number
   timeline: AssetTimelinePoint[]
@@ -216,6 +244,7 @@ export function makeSnapshot(
   const open = positions.filter((p) => !p.isClosed)
   const balances = cashBalances(cashTxs, buys, sells)
   const { points, around } = replayTimeline(buys, sells, cashTxs, positions)
+  const valueRate = fxRate && fxRate.rate > 0 ? fxRate.rate : null
   const outcomes = positions.flatMap((p) => p.outcomes)
   return {
     buys,
@@ -227,7 +256,9 @@ export function makeSnapshot(
     outcomes,
     cash: balances,
     fxRate,
-    totalAssets: totalAssetsOf(open, balances),
+    valueRate,
+    totalAssets: totalAssetsOf(open, balances, valueRate),
+    bookTotalAssets: totalAssetsOf(open, balances),
     netContributions: netContributions(cashTxs),
     cumulativeFees: cumulativeFees(cashTxs, buys, sells),
     timeline: points,

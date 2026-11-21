@@ -1,5 +1,5 @@
 // 설정 환율 — 설정 탭과 현황(총자산 숫자 누르기)이 같이 쓴다. 저장하면 수동 입력값과 입력 시각이 기록되고,
-// 이후 환전 기록이 생기면 그 환율이 더 최근 값으로 자동 적용된다. 총자산·경지엔 안 들어가는 참고값.
+// 이후 환전 기록이 생기면 그 환율이 더 최근 값으로 자동 적용된다. 현황 총자산의 달러 환산 환율(과거 시점·경지는 장부 기준 그대로).
 import { useState } from 'react'
 import { errorMessage } from '../../state/backupActions'
 import { useJournal } from '../../state/journal'
@@ -39,7 +39,7 @@ export function FxRateSheet({ onClose }: { onClose: () => void }) {
         </button>
       }
     >
-      <FormSection footer={'지금 시장 환율 참고값이에요. 총자산·경지는 바뀌지 않고(달러 예수금은 평균 매입 환율 원가), 현황의 "미실현 환차" 계산에만 써요.'}>
+      <FormSection footer={'지금 시장 환율이에요(앱을 열 때 하루 한 번 자동 갱신). 현황 총자산·비중의 달러 환산과 "미실현 환차"에 써요. 과거 기록 시점의 총자산·경지는 그대로예요.'}>
         <FieldRow label="지금 적용 중">
           <span className="muted small">{fxRateText(snapshot.fxRate)}</span>
         </FieldRow>
