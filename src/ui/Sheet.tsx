@@ -1,7 +1,9 @@
 // 시트(iOS 모달) — 폰에선 아래에서 올라오는 시트, PC에선 가운데 창. 툴바: 왼쪽 위 닫기/취소, 오른쪽 위 확인·보조.
 // `blockDismiss`면 바깥 누르기·Esc로 닫지 않고 `onAttemptDismiss`를 부른다(쓰던 내용 보호).
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+
+let lockCount = 0
 
 export function Sheet({
   title,
@@ -21,16 +23,20 @@ export function Sheet({
   onAttemptDismiss?: () => void
 }) {
   const dismiss = () => (blockDismiss ? onAttemptDismiss?.() : onClose())
+  const dismissRef = useRef(dismiss)
+  dismissRef.current = dismiss
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && dismiss()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && dismissRef.current()
     document.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
+    // 스크롤 잠금은 열린 시트 개수로 센다 — 겹친 시트가 어떤 순서로 닫혀도 마지막이 닫힐 때 푼다.
+    lockCount += 1
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
+      lockCount -= 1
+      if (lockCount === 0) document.body.style.overflow = ''
     }
-  })
+  }, [])
   return createPortal(
     <div className="sheet-backdrop" onPointerDown={(e) => e.target === e.currentTarget && dismiss()}>
       <div className="sheet" role="dialog" aria-modal aria-label={title}>
