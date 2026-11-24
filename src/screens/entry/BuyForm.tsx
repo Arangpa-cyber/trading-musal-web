@@ -13,6 +13,7 @@ import {
   type CashTx,
   type Currency,
 } from '../../core'
+import { useDashTickers } from '../../data/dashTickers'
 import { useJournal } from '../../state/journal'
 import {
   CashChangeBox,
@@ -170,11 +171,16 @@ export function BuyForm({ date, addPositionId, onDirty, onCurrency, save, busy }
   if (isForeign && exchangeWithBuy && (exRateKrw === null || exRateUsd === null)) blockReasons.push('같이 기록할 환전의 보낸 원화·받은 달러를 입력하세요(환전 안 했으면 끄세요)')
 
   // 자산명 자동완성 — 과거 매수 자산명. 고르면 그때 쓴 통화도 따라온다.
+  // 영문을 치기 시작하면 추세 대시보드의 나스닥100 티커도 보인다(대시보드가 무살 기록을 티커로 맞춤). 처음 쓰는 대시보드 티커면 통화는 달러.
   const knownAssets = [...new Set(data.buys.map((b) => b.assetName))].sort()
+  const dashTickers = useDashTickers()
+  const knownSet = new Set(knownAssets)
+  const dashOptions = /^[A-Za-z]/.test(assetName) ? dashTickers.filter(([t]) => !knownSet.has(t)) : []
   function changeAsset(v: string) {
     setAssetName(v)
     const last = data.buys.filter((b) => b.assetName === v).sort((a, b) => b.date - a.date)[0]
     if (last) setCurrency(last.currency)
+    else if (dashTickers.some(([t]) => t === v)) setCurrency('USD')
   }
 
   function submit() {
@@ -268,6 +274,9 @@ export function BuyForm({ date, addPositionId, onDirty, onCurrency, save, busy }
           <datalist id="known-assets">
             {knownAssets.map((a) => (
               <option key={a} value={a} />
+            ))}
+            {dashOptions.map(([t, n]) => (
+              <option key={'dash-' + t} value={t} label={n} />
             ))}
           </datalist>
         </FormRow>

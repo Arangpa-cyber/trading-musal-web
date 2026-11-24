@@ -83,6 +83,7 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
     `importIos.ts` iOS 백업 가져오기, `backup.ts` 웹 백업.
   - `__tests__/` — iOS `CoreServiceTests` 시나리오를 옮긴 회귀 테스트. 계산 수정 시 반드시 통과.
 - `src/data/` — 저장(Supabase). `store.ts` 테이블 ↔ 웹 형식, `useSession.ts` 구글 로그인. 계산은 하지 않는다.
+  `dashTickers.ts` = 추세 대시보드 나스닥100 티커·이름(`https://arangpa-cyber.github.io/trend-dashboard/tickers.json`, 하루 기기 저장) → 매수 화면 자산명 자동완성(영문을 치기 시작하면 보임, 처음 쓰는 대시보드 티커를 고르면 통화 달러, 2026-11-24).
 - `src/screens/` — 화면. `JournalScreen`(불러오기 → 온보딩 또는 앱) → `AppShell`(위 막대·아래 3탭·#/주소 라우팅·시트) →
   `home/`(현황), `history/`, `entry/`, `edit/`, `memo/`, `settings/`(`SettingsScreen` iOS 순서·`FxRateSheet`·`CardOrderSheet`),
   `guide/`(`GuideScreen` 흐름 설명 + 용어 사전 + 검색, `helpText.ts` = iOS HelpText 이식 — **명칭이 바뀌면 반드시 같이 고친다**,
@@ -125,6 +126,8 @@ iOS 코드는 규칙·계산을 확인하는 참고 자료로만 읽고 수정�
 - `supabase/schema.sql` — DB 구조. **바꾸면 Supabase SQL Editor에서 다시 실행**해야 한다(여러 번 실행해도 안전하게 작성).
 
 ## DB (2026-11-13)
+
+- **추세 대시보드가 읽음(2026-11-24)**: 같은 주소의 추세 대시보드(`~/Downloads/trend-dashboard`, index.html `muBuild`)가 같은 로그인으로 `buys`·`sells`의 `data`를 **읽기만** 한다(달러 종목, 자산명 = 티커 → 차트에 매수·매도·손절, 보유는 ★★). `tradeId`·`date`·`assetName`·`unitPrice`·`quantity`·`stopLossPrice`·`initialStopLossPrice`·`currency`·`soldBuyIds`·`sellReasons`를 바꾸면 대시보드도 함께 고친다. 같은 주소라 로그인·로그아웃이 두 앱에 함께 적용된다.
 
 - 테이블 6개: `buys`·`sells`·`cash_txs`·`journals`(기록 = `data` JSONB에 웹 형식 그대로, 키 = (user_id, id)),
   `profiles`(별호·원칙), `settings`(`data` JSONB). 기록에 칸이 늘어도 DB를 안 바꾼다 — 대신 `core/backup.ts`·`store.ts`의
